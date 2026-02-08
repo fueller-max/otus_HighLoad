@@ -1,0 +1,250 @@
+{
+  "version": 4,
+  "terraform_version": "1.14.4",
+  "serial": 4,
+  "lineage": "5662da5c-d345-7dc2-088c-583bcd50e549",
+  "outputs": {
+    "external_ip_address_vm_1": {
+      "value": "158.160.223.144",
+      "type": "string"
+    },
+    "internal_ip_address_vm_1": {
+      "value": "192.168.10.28",
+      "type": "string"
+    }
+  },
+  "resources": [
+    {
+      "mode": "managed",
+      "type": "yandex_compute_disk",
+      "name": "boot-disk-1",
+      "provider": "provider[\"registry.terraform.io/yandex-cloud/yandex\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "allow_recreate": null,
+            "block_size": 4096,
+            "created_at": "2026-02-08T13:29:24Z",
+            "description": "",
+            "disk_placement_policy": [
+              {
+                "disk_placement_group_id": ""
+              }
+            ],
+            "folder_id": "b1gb1a664rt8sd551sr1",
+            "hardware_generation": [
+              {
+                "generation2_features": [],
+                "legacy_features": [
+                  {
+                    "pci_topology": "PCI_TOPOLOGY_V1"
+                  }
+                ]
+              }
+            ],
+            "id": "fv4bgov3h4scnma7p8jc",
+            "image_id": "fd833ivvmqp6cuq7shpc",
+            "kms_key_id": null,
+            "labels": {},
+            "name": "boot-disk-1",
+            "product_ids": [
+              "f2ent8creb56ehrb473q"
+            ],
+            "size": 10,
+            "snapshot_id": "",
+            "status": "ready",
+            "timeouts": null,
+            "type": "network-hdd",
+            "zone": "ru-central1-d"
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiY3JlYXRlIjozMDAwMDAwMDAwMDAsImRlbGV0ZSI6MzAwMDAwMDAwMDAwLCJ1cGRhdGUiOjMwMDAwMDAwMDAwMH19"
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "yandex_compute_instance",
+      "name": "vm-1",
+      "provider": "provider[\"registry.terraform.io/yandex-cloud/yandex\"]",
+      "instances": [
+        {
+          "schema_version": 1,
+          "attributes": {
+            "allow_recreate": null,
+            "allow_stopping_for_update": null,
+            "boot_disk": [
+              {
+                "auto_delete": true,
+                "device_name": "fv4bgov3h4scnma7p8jc",
+                "disk_id": "fv4bgov3h4scnma7p8jc",
+                "initialize_params": [
+                  {
+                    "block_size": 4096,
+                    "description": "",
+                    "image_id": "fd833ivvmqp6cuq7shpc",
+                    "kms_key_id": "",
+                    "name": "boot-disk-1",
+                    "size": 10,
+                    "snapshot_id": "",
+                    "type": "network-hdd"
+                  }
+                ],
+                "mode": "READ_WRITE"
+              }
+            ],
+            "created_at": "2026-02-08T13:31:53Z",
+            "description": "",
+            "filesystem": [],
+            "folder_id": "b1gb1a664rt8sd551sr1",
+            "fqdn": "fv4lbvs0v18s1tvj0png.auto.internal",
+            "gpu_cluster_id": "",
+            "hardware_generation": [
+              {
+                "generation2_features": [],
+                "legacy_features": [
+                  {
+                    "pci_topology": "PCI_TOPOLOGY_V1"
+                  }
+                ]
+              }
+            ],
+            "hostname": "",
+            "id": "fv4lbvs0v18s1tvj0png",
+            "labels": null,
+            "local_disk": [],
+            "maintenance_grace_period": "",
+            "maintenance_policy": null,
+            "metadata": {
+              "user-data": "#cloud-config\nusers:\n  - name: deploy\n    groups: sudo\n    shell: /bin/bash\n    sudo: 'ALL=(ALL) NOPASSWD:ALL'\n    ssh_authorized_keys:\n      - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOGXMwIH6kOdzJdIBsl+g2oxT4sVWG940FcikV5rzaWQ homeserver@maxhome.net"
+            },
+            "metadata_options": [
+              {
+                "aws_v1_http_endpoint": 1,
+                "aws_v1_http_token": 2,
+                "gce_http_endpoint": 1,
+                "gce_http_token": 1
+              }
+            ],
+            "name": "terraform1",
+            "network_acceleration_type": "standard",
+            "network_interface": [
+              {
+                "dns_record": [],
+                "index": 0,
+                "ip_address": "192.168.10.28",
+                "ipv4": true,
+                "ipv6": false,
+                "ipv6_address": "",
+                "ipv6_dns_record": [],
+                "mac_address": "d0:0d:15:5f:f8:0f",
+                "nat": true,
+                "nat_dns_record": [],
+                "nat_ip_address": "158.160.223.144",
+                "nat_ip_version": "IPV4",
+                "security_group_ids": null,
+                "subnet_id": "fl869k7sae91pak0ud6s"
+              }
+            ],
+            "placement_policy": [
+              {
+                "host_affinity_rules": [],
+                "placement_group_id": "",
+                "placement_group_partition": 0
+              }
+            ],
+            "platform_id": "standard-v2",
+            "resources": [
+              {
+                "core_fraction": 100,
+                "cores": 2,
+                "gpus": 0,
+                "memory": 2
+              }
+            ],
+            "scheduling_policy": [
+              {
+                "preemptible": false
+              }
+            ],
+            "secondary_disk": [],
+            "service_account_id": "",
+            "status": "running",
+            "timeouts": null,
+            "zone": "ru-central1-d"
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiY3JlYXRlIjozMDAwMDAwMDAwMDAsImRlbGV0ZSI6MzAwMDAwMDAwMDAwLCJ1cGRhdGUiOjMwMDAwMDAwMDAwMH0sInNjaGVtYV92ZXJzaW9uIjoiMSJ9",
+          "dependencies": [
+            "yandex_compute_disk.boot-disk-1",
+            "yandex_vpc_network.network-1",
+            "yandex_vpc_subnet.subnet-1"
+          ]
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "yandex_vpc_network",
+      "name": "network-1",
+      "provider": "provider[\"registry.terraform.io/yandex-cloud/yandex\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "created_at": "2026-02-08T13:31:50Z",
+            "default_security_group_id": "enpqof7vg6liba0c3qo4",
+            "description": "",
+            "folder_id": "b1gb1a664rt8sd551sr1",
+            "id": "enpdje8ealsj8p7sdcl4",
+            "labels": {},
+            "name": "network1",
+            "subnet_ids": [],
+            "timeouts": null
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiY3JlYXRlIjo2MDAwMDAwMDAwMCwiZGVsZXRlIjo2MDAwMDAwMDAwMCwidXBkYXRlIjo2MDAwMDAwMDAwMH19"
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "yandex_vpc_subnet",
+      "name": "subnet-1",
+      "provider": "provider[\"registry.terraform.io/yandex-cloud/yandex\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "created_at": "2026-02-08T13:31:52Z",
+            "description": "",
+            "dhcp_options": [],
+            "folder_id": "b1gb1a664rt8sd551sr1",
+            "id": "fl869k7sae91pak0ud6s",
+            "labels": {},
+            "name": "subnet1",
+            "network_id": "enpdje8ealsj8p7sdcl4",
+            "route_table_id": "",
+            "timeouts": null,
+            "v4_cidr_blocks": [
+              "192.168.10.0/24"
+            ],
+            "v6_cidr_blocks": [],
+            "zone": "ru-central1-d"
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiY3JlYXRlIjoxODAwMDAwMDAwMDAsImRlbGV0ZSI6MTgwMDAwMDAwMDAwLCJ1cGRhdGUiOjE4MDAwMDAwMDAwMH19",
+          "dependencies": [
+            "yandex_vpc_network.network-1"
+          ]
+        }
+      ]
+    }
+  ],
+  "check_results": null
+}

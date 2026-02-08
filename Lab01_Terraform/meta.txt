@@ -1,0 +1,8 @@
+#cloud-config
+users:
+  - name: deploy
+    groups: sudo
+    shell: /bin/bash
+    sudo: 'ALL=(ALL) NOPASSWD:ALL'
+    ssh_authorized_keys:
+      - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOGXMwIH6kOdzJdIBsl+g2oxT4sVWG940FcikV5rzaWQ homeserver@maxhome.net
