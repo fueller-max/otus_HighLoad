@@ -1,0 +1,25 @@
+#SPDX-License-Identifier: MIT-0
+---
+# tasks file for ha-gfs-infra
+
+- name: Install list of neccessary packages
+  package:
+      name:
+          - gfs2-utils 
+          - corosync 
+          - dlm-controld
+      state: present
+
+- name: Template and copy corosync.conf  
+  ansible.builtin.template:
+      src:  templates/corosync.conf.j2         
+      dest: /etc/corosync/corosync.conf     
+      owner: root                           
+      group: root                           
+      mode: '0644'      
+
+- name: Restart Corosync service
+  ansible.builtin.service:
+        name: corosync
+        enabled: yes
+        state: restarted

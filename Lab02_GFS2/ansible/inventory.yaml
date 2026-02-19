@@ -1,0 +1,21 @@
+all:
+  children:
+     servers:
+      hosts:
+        iscsi:
+          ansible_host: 192.168.70.20
+     
+     clients:
+      hosts:
+        gfs1: 
+          ansible_host: 192.168.70.31 
+        gfs2:
+          ansible_host: 192.168.70.32 
+        gfs3: 
+          ansible_host: 192.168.70.33
+           
+
+  vars:
+      ansible_user: deploy
+      ansible_connection: ssh 
+      ansible_python_interpreter : /usr/bin/python3.12   

@@ -1,0 +1,49 @@
+- name: Manage iSCSI target node
+  hosts: iscsi
+  become: true
+  roles:
+       - role: iscsi-target
+
+- name: Manage iSCSI initiator nodes 
+  hosts: clients
+  become: true
+  gather_facts: true
+  vars:
+        # 1. Define the iSCSI Initiator Name (IQN)
+        # This will update /etc/iscsi/initiatorname.iscsi
+        # host_vars -> host
+        open_iscsi_initiator_name: "{{ iscsi_initiator_name }}"
+        open_iscsi_authentication: false
+        open_iscsi_automatic_startup: true
+
+        # 2. Specify the iSCSI target details for automatic connection
+        # group_vars
+        open_iscsi_targets:
+          - name: 'target1'
+            discover: true
+            auto_portal_startup: true
+            auto_node_startup: true
+            target: "{{ iscsi_target }}"
+            portal: "{{ iscsi_target_portal }}"
+            login: true
+       
+  roles:
+        - role: ricsanfre.iscsi_initiator
+
+- name: Manage DNS hosts for iSCSI clients (for Corosync and GFS2)
+  hosts: clients
+  become: true
+  roles:
+       - dns-hosts     
+
+- name: Manage neccessary package infrastructure(GFS2, Corosync, DLM) for iSCSI initiators 
+  hosts: clients
+  become: true
+  roles:
+       - ha-gfs-infra 
+
+- name: Deploy GFS2 on iSCSI initiators
+  hosts: clients
+  become: true
+  roles:
+     - gfs2-deploy

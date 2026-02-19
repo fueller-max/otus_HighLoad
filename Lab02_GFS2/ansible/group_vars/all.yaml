@@ -1,0 +1,15 @@
+
+# Infrastrucure
+client1_ip: "192.168.70.31"
+client2_ip: "192.168.70.32"
+client3_ip: "192.168.70.33"
+
+client1_hostname: "gfs1"
+client2_hostname: "gfs2"
+client3_hostname: "gfs3"
+
+# Corosync
+corosync_cluster_name: "gfs2cluster"
+
+# GFS2
+dev:  "/dev/sda" 

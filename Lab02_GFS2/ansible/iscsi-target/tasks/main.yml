@@ -1,0 +1,67 @@
+#SPDX-License-Identifier: MIT-0
+---
+# tasks file for iscsi-target
+
+    - name: Install iSCSI target packages
+      ansible.builtin.package:
+         name:
+           - targetcli-fb
+         state: present
+      when: ansible_facts["os_family"] == "Debian"
+
+    - name: Install iSCSI target packages (RHEL/CentOS)
+      ansible.builtin.yum:
+         name:
+           - scsi-target-utils
+         state: present
+      when: ansible_facts["os_family"] == "RedHat"
+
+    - name: Create LVM for iscsi target
+      ansible.builtin.shell: |
+         pvcreate /dev/vdb
+         vgcreate vg_iscsi /dev/vdb
+         lvcreate -L {{ lvm_size }} -n lun1 vg_iscsi
+
+
+   ####     Config of SCSI target  using targetcli    #############################################################
+   ##
+   ##  Use here "one-shot command" approach as Ansible fails in case of interactive targetcli shell
+
+    - name: Create backstore
+      ansible.builtin.shell: "targetcli /backstores/block create name=iscsi_lun1 dev=/dev/vg_iscsi/lun1"
+      register: result
+      failed_when: result.rc != 0 and 'already exists' not in result.stderr
+
+    - name: Create iSCSI target
+      ansible.builtin.shell: "targetcli /iscsi create {{ target_iqn }}"
+  
+    - name: Create LUN
+      ansible.builtin.shell: "targetcli /iscsi/{{ target_iqn }}/tpg1/luns/ create /backstores/block/iscsi_lun1"
+
+    - name: Disable authentication
+      ansible.builtin.shell: "targetcli /iscsi/{{ target_iqn }}/tpg1 set attribute authentication=0"
+
+    - name: Add ACL for the first client
+      ansible.builtin.shell: "targetcli /iscsi/{{ target_iqn }}/tpg1/acls create {{ ign }}:{{ client1_hostname }}"  
+    
+    - name: Add ACL for the second client
+      ansible.builtin.shell: "targetcli /iscsi/{{ target_iqn }}/tpg1/acls create {{ ign }}:{{ client2_hostname }}"
+
+    - name: Add ACL for the third client
+      ansible.builtin.shell: "targetcli /iscsi/{{ target_iqn }}/tpg1/acls create {{ ign }}:{{ client3_hostname }}"
+
+    - name: Save configuration
+      ansible.builtin.shell: "targetcli saveconfig" 
+   
+  ##### End of SCSI target config  ###################################################################################
+
+    - name: Enable rtslib-fb-targetctl
+      ansible.builtin.service:
+        name: rtslib-fb-targetctl
+        enabled: yes
+        state: restarted
+
+
+
+
+   

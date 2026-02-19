@@ -1,0 +1,3 @@
+iscsi_target:        "iqn.2026-02.org.test:target1"
+iscsi_target_portal: "192.168.70.20"
+iscsi_target_port:   "3260"

@@ -1,0 +1,13 @@
+{# The value '{{hostname}}' will be replaced with the local-hostname -#}
+127.0.1.1 {{ ansible_facts['hostname'] }} {{ ansible_facts['hostname'] }}
+127.0.0.1 localhost
+
+{{ client1_ip }} {{ client1_hostname }}.local  {{ client1_hostname }}
+{{ client2_ip }} {{ client2_hostname }}.local  {{ client2_hostname }}
+{{ client3_ip }} {{ client3_hostname }}.local  {{ client3_hostname }}
+
+# The following lines are desirable for IPv6 capable hosts
+::1 localhost ip6-localhost ip6-loopback
+ff02::1 ip6-allnodes
+ff02::2 ip6-allrouters
+

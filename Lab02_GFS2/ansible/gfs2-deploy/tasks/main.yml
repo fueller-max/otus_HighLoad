@@ -1,0 +1,33 @@
+#SPDX-License-Identifier: MIT-0
+---
+# tasks file for gfs2-deploy_
+
+- name: Create File System GFS2 on the first client  
+  ansible.builtin.shell: |
+        echo "y" | mkfs.gfs2 -p lock_dlm -t {{ corosync_cluster_name }}:clusterdisk -j 3 {{ dev }}
+  when: ansible_facts["hostname"] == "gfs1"
+
+##
+## -p lock_dlm                    позволяет осуществлять блокировку на основе DLM для использования в конфигурациях общего хранилищ
+##  t <clustername>:<lockspace>   пара "таблица блокировки", используемая для уникальной идентификации этой файловой системы в кластере
+##  clustername -> /etc/corosync/corosync.conf
+## -j 3                           количество журналов, которые необходимо создать для mkfs.gfs2.
+##
+
+- name: Create mount point on each client 
+  ansible.builtin.shell: |
+         mkdir /mnt/gfs2/
+
+        
+- name: Read UUID of a created disk 
+  ansible.builtin.shell:  blkid -s UUID -o value /dev/sda
+  register: sda_uuid
+ 
+- name: Print the value of UUID 
+  ansible.builtin.debug:
+    var: sda_uuid.stdout
+  when: ansible_facts["hostname"] == "gfs1"   
+
+- name: Mount disk using UUID
+  ansible.builtin.shell: |
+      mount -U {{ sda_uuid.stdout }} /mnt/gfs2/ -o noatime   

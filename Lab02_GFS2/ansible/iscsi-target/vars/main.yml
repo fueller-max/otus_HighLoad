@@ -1,0 +1,8 @@
+#SPDX-License-Identifier: MIT-0
+---
+# vars file for iscsi-target
+
+ ign:        "iqn.2026-02.org.test"
+ target_iqn: "iqn.2026-02.org.test:target1"
+ target_portal: "192.168.70.20"  
+ lvm_size: "5G"
