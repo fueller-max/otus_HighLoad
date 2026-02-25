@@ -1,0 +1,34 @@
+#SPDX-License-Identifier: MIT-0
+---
+# tasks file for nfs-server
+
+- name: Install NFS kernel server
+  apt: 
+    update_cache: true 
+    cache_valid_time: 3600
+    name:
+      - nfs-kernel-server
+    state: present
+
+- name: Create the shared directory
+  ansible.builtin.file:
+     path: "{{ nfs_server_shared_folder }}"
+     state: directory
+     owner: root
+     group: root
+     mode: '0777' 
+
+- name: Add net to export 
+  ansible.builtin.lineinfile: 
+     path: /etc/exports
+     line: "{{ nfs_server_shared_folder }} {{ nfs_export_net }}(rw,sync,no_subtree_check,no_root_squash)"
+     create: true
+     state: present 
+
+- name: Apply settings
+  ansible.builtin.shell: |
+         exportfs -a       
+  notify: Restart nfs-kernel-server       
+
+
+

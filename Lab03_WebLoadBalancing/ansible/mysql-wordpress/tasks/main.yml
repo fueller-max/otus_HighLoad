@@ -1,0 +1,16 @@
+#SPDX-License-Identifier: MIT-0
+---
+# tasks file for mysql-wordpress
+
+- name: Install mysql
+  ansible.builtin.include_tasks: install.yaml
+  tags: install
+  when: ansible_facts["os_family"] == "Debian"
+
+- name: Provision mysql for WordPess
+  ansible.builtin.include_tasks: provision.yaml
+  tags: configure
+  when: ansible_facts["os_family"] == "Debian"
+
+
+

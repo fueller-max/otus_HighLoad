@@ -1,0 +1,8 @@
+#SPDX-License-Identifier: MIT-0
+---
+# handlers file for nfs-server
+
+- name: Restart nfs-kernel-server
+  systemd:
+     name: nfs-kernel-server
+     state: restarted 

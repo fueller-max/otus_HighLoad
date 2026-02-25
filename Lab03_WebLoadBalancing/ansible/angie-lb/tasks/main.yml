@@ -1,0 +1,12 @@
+#SPDX-License-Identifier: MIT-0
+---
+# tasks file for angie-lb
+- name: Install Angie
+  ansible.builtin.include_tasks: install.yaml
+  tags: install
+  when: ansible_facts["os_family"] == "Debian"
+
+- name: Provision Angie for load balancer
+  ansible.builtin.include_tasks: provision.yaml
+  tags: configure
+  when: ansible_facts["os_family"] == "Debian"

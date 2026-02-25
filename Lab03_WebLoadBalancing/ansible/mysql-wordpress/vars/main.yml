@@ -1,0 +1,7 @@
+#SPDX-License-Identifier: MIT-0
+---
+# vars file for mysql-wordpress
+bind_address: "10.10.20.34"
+host_usr_addr: "10.10.20.0/24"
+
+

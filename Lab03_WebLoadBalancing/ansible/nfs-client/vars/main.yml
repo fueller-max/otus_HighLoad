@@ -1,0 +1,4 @@
+#SPDX-License-Identifier: MIT-0
+---
+# vars file for nfs-client
+nfs_server_ip: "10.10.20.34"

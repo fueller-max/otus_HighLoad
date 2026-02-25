@@ -1,0 +1,7 @@
+#SPDX-License-Identifier: MIT-0
+---
+# handlers file for angie-lb
+- name: Restart Angie
+  systemd:
+     name: angie
+     state: restarted

@@ -15,4 +15,49 @@
 
 ## Решение
 
+В данной работе для разворачивания инфраструктуры будем1/ использовать локальный стенд Proxmox.
+
+Развернем стенд на базе СMS WordPress в количестве 5ти виртуальных машин. В составе:
+
+* Балансировщик на базе Angie - 1 ВМ
+* Бэкенд: WordPress + Nginx с использованием протокола fastcgi между ними- 3 ВМ
+* База данных MySql и NFS хранилище для общих файлов - 1 ВМ
+
+Для лучшего понимания графическая схема стенда представлена ниже.
+
+
+
+Виртуальные машины в Proxmox:
+
+![](/otus_HighLoad/Lab03_WebLoadBalancing/pics/ProxomoxLab03.png)
+
+Страница WordPress
+
+![](/otus_HighLoad/Lab03_WebLoadBalancing/pics/Wordpress_samplepage.png)
+
+
+Тестирование нагрузки 2000+ запросов с использованием балансировки round robin:
+
+![](/otus_HighLoad/Lab03_WebLoadBalancing/pics/CurlTestMassive_RoundRobin.png)
+
+![](/otus_HighLoad/Lab03_WebLoadBalancing/pics/AngieConsole_roundRobin.png)
+
+Тестирование с использованием балансировки hash:
+
+![](/otus_HighLoad/Lab03_WebLoadBalancing/pics/AngieConsole_HashBalancing1.png)
+
+![](/otus_HighLoad/Lab03_WebLoadBalancing/pics/AngieConsole_HashBalancing2.png)
+
+
+
+
+```bash
+maksim@maksim-asus-tuf:~/otus/labs/Lab03_WebBalancing/ansible$ ansible-playbook playbooks/main.yaml --ask-become-pass --limit loadbalancer --tag "configure" --tag "hash_balancing"
+```
+
+
+
+<details>
+  <summary>text</summary>
+</details>  
 

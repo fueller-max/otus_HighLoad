@@ -1,0 +1,19 @@
+
+- name: Install package for mysql
+  apt: 
+    update_cache: true 
+    cache_valid_time: 3600
+    name:
+      - mysql-server
+      - python3-pip 
+      - python3-venv
+      - python3-virtualenv
+    state: present
+ 
+- name: Create the virtual environment and install requirements
+  ansible.builtin.pip:
+      name: PyMySQL
+      virtualenv: /opt/mysql-venv 
+      virtualenv_site_packages: yes
+      state: present
+ 

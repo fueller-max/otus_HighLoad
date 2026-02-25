@@ -1,0 +1,30 @@
+#SPDX-License-Identifier: MIT-0
+---
+# tasks file for nfs-client
+
+- name: Install NFS common
+  apt: 
+    update_cache: true 
+    cache_valid_time: 3600
+    name:
+      - nfs-common
+    state: present
+
+- name: Create directory for files Wordpress
+  ansible.builtin.file:
+     path: "{{ wordpress_www_dir }}"
+     state: directory
+     owner: root
+     group: root
+     mode: '0777' 
+
+- name: Mount Wordpress directory to NFS shared storage
+  ansible.builtin.shell: |
+         mount {{ nfs_server_ip}}:{{ nfs_server_shared_folder }} {{ wordpress_www_dir }}
+
+- name: Add mount to /etc/fsatb for automatic mounting
+  ansible.builtin.lineinfile: 
+     path: /etc/fstab
+     line: "{{ nfs_server_ip}}:{{ nfs_server_shared_folder }} {{ wordpress_www_dir }} nfs default 0 0"
+     create: true
+     state: present 

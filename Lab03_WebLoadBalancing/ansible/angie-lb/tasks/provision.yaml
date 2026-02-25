@@ -1,0 +1,9 @@
+- name: Copy loadbalancing config for Angie
+  ansible.builtin.template:
+      src:  templates/default.conf.j2        
+      dest: /etc/angie/http.d/default.conf   
+      owner: root                           
+      group: root                           
+      mode: '0644'
+  notify: Restart Angie    
+  tags: [always]      

@@ -1,0 +1,26 @@
+ 
+    - name: Install Nginx and PHP packages
+      ansible.builtin.apt: 
+        name:
+          - nginx
+          - php-fpm
+          - php-mysql
+          - php-curl
+          - php-gd
+          - php-mbstring
+          - php-xml
+          - php-xmlrpc
+          - php-soap
+          - php-intl
+          - php-zip
+        state: present
+      tags: [always] 
+
+    - name: Download and unpack WordPress
+      ansible.builtin.shell: |
+         cd /var/www
+         wget https://wordpress.org/latest.tar.gz
+         tar -xzf latest.tar.gz
+      tags: [always]   
+      when: ansible_facts["hostname"] == "backend1"
+      

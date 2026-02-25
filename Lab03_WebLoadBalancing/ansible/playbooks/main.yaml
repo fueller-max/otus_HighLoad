@@ -1,0 +1,20 @@
+- name: Provision database machine
+  hosts: database
+  become: true
+  roles:
+        - role: mysql-wordpress
+        - role: nfs-server
+
+- name: Provision backend machines
+  hosts: backend2,backend3
+  become: true
+  roles:
+        - role: nfs-client
+        - role: wordpress       
+
+- name: Provision load balancer machine
+  hosts: loadbalancer
+  become: true
+  roles:
+        - role: angie-lb
+                     

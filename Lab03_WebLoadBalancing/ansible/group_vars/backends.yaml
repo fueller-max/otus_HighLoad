@@ -1,0 +1,7 @@
+domain: "www.example.local"
+
+wordpress_www_dir: "/var/www/wordpress"
+listen_port1: "8080"
+
+database_ip: "10.10.20.34"
+

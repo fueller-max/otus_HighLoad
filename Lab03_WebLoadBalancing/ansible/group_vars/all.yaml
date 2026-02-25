@@ -1,0 +1,10 @@
+nfs_server_shared_folder: "/opt/srv/export/wordpress"
+
+database_name: "wordpress_db"
+database_user: "wp_user"
+database_password: "strong_password"
+
+
+ip_server_backend1: "192.168.70.31" 
+ip_server_backend2: "192.168.70.32"
+ip_server_backend3: "192.168.70.33"  

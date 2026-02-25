@@ -1,0 +1,25 @@
+- name: Set listen address
+  ansible.builtin.lineinfile: 
+    path: /etc/mysql/mysql.conf.d/mysqld.cnf
+    regexp: '^bind-address'
+    line: 'bind-address         = {{ bind_address }}'
+  notify: Restart mysql
+
+- name: Create database
+  vars:
+    ansible_python_interpreter: /opt/mysql-venv/bin/python3  
+  community.mysql.mysql_db:
+   name: "{{ database_name }}"
+   state: present
+   login_unix_socket: /var/run/mysqld/mysqld.sock 
+
+- name: Create database user
+  vars:
+    ansible_python_interpreter: /opt/mysql-venv/bin/python3  
+  community.mysql.mysql_user:
+   name: "{{ database_user }}"
+   password: "{{ database_password }}"
+   host: '{{ host_usr_addr }}'
+   priv: '{{ database_name }}.*:ALL'
+   state: present
+   login_unix_socket: /var/run/mysqld/mysqld.sock    

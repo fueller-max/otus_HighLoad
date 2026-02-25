@@ -1,0 +1,25 @@
+all:
+  children:
+     loadbalancers:
+       hosts:
+        loadbalancer:
+          ansible_host: 192.168.70.11
+     
+     backends:
+      hosts:
+        backend1: 
+          ansible_host: 192.168.70.31 
+        backend2:
+          ansible_host: 192.168.70.32 
+        backend3: 
+          ansible_host: 192.168.70.33
+
+     databses:
+      hosts:
+        database:
+          ansible_host: 192.168.70.34       
+
+  vars:
+      ansible_user: deploy
+      ansible_connection: ssh 
+      ansible_python_interpreter : /usr/bin/python3.12   

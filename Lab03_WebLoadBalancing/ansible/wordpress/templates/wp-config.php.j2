@@ -1,0 +1,21 @@
+<?php
+// ** MySQL settings
+define('DB_NAME', '{{ database_name }}');
+define('DB_USER', '{{ database_user }}');
+define('DB_PASSWORD', '{{ database_password }}');
+define('DB_HOST', '{{ database_ip }}');
+#Settings to use without doman name allowing access using just IP address.
+define( 'WP_HOME', 'http://' . $_SERVER['HTTP_HOST'] );
+define( 'WP_SITEURL', 'http://' . $_SERVER['HTTP_HOST'] );
+#define('WP_HOME', 'http://{{ domain }}');
+#define('WP_SITEURL', 'http://{{ domain }}');
+
+$table_prefix = 'wp_';
+
+// ** Debugging Mode ** //
+define( 'WP_DEBUG', false );
+
+if ( ! defined( 'ABSPATH' ) ) {
+	define( 'ABSPATH', dirname( __FILE__ ) . '/' );
+}
+require_once( ABSPATH . 'wp-settings.php' );
