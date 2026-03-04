@@ -1,0 +1,21 @@
+# Angiehasync configure file
+
+    # Master node. Strictly speacking this node.
+    M_NODE="{{ vrrp_master_ip }}"
+
+    # Dir to sync
+    WATCH_DIR="/etc/angie/"
+
+    LOG_FILE="/var/log/angiehasync/angiehasync.log"
+
+    # Nodes should be listed with spaces as delimiter
+    TARGET_HOSTS="{{ vrrp_slave_ip }}"
+
+    ANGIE_RELOAD_TIMEOUT=5
+    SYNC_TIMEOUT=2
+    SSH_TIMEOUT=2
+    SSH_PORT=22
+    # Default SSH user is root
+    SSH_USER="angie-ha-sync"
+    # Path to Identity
+    SSH_ID="/home/$SSH_USER/.ssh/id_rsa"

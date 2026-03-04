@@ -1,0 +1,14 @@
+#SPDX-License-Identifier: MIT-0
+---
+# handlers file for ha-gfs-infra
+- name: Restart Corosync service
+  ansible.builtin.service:
+        name: corosync
+        enabled: yes
+        state: restarted
+
+- name: Restart dlm service
+  ansible.builtin.service:
+        name: dlm
+        enabled: yes
+        state: restarted        

@@ -1,0 +1,23 @@
+#SPDX-License-Identifier: MIT-0
+---
+# tasks file for angie-lb
+- name: Install Angie
+  ansible.builtin.include_tasks: install.yaml
+  tags: install
+  when: ansible_facts["os_family"] == "Debian"
+
+- name: Provision SSH infrastructure for nodes
+  ansible.builtin.include_tasks: deploy-ssh.yaml
+  tags: ssh
+  when: 
+      - ansible_facts["os_family"] == "Debian"
+      - "'configure' in ansible_run_tags"
+      - "'syncronization' in ansible_run_tags" 
+
+- name: Provision Angie for load balancer
+  ansible.builtin.include_tasks:
+   file: provision.yaml
+  vars:
+      tls_enabled: true
+  tags: configure
+  when: ansible_facts["os_family"] == "Debian"

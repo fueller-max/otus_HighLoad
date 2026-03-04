@@ -1,0 +1,57 @@
+user  angie;
+worker_processes  auto;
+worker_rlimit_nofile 65536;
+
+error_log  /var/log/angie/error.log notice;
+pid        /run/angie.pid;
+
+events {
+    worker_connections  65536;
+}
+
+
+
+http {
+    include       /etc/angie/mime.types;
+    default_type  application/octet-stream;
+
+    log_format  main  '$remote_addr - $remote_user [$time_local] "$request" '
+                      '$status $body_bytes_sent "$http_referer" '
+                      '"$http_user_agent" "$http_x_forwarded_for"';
+
+    log_format extended '$remote_addr - $remote_user [$time_local] "$request" '
+                        '$status $body_bytes_sent "$http_referer" rt="$request_time" '
+                        '"$http_user_agent" "$http_x_forwarded_for" '
+                        'h="$host" sn="$server_name" ru="$request_uri" u="$uri" '
+                        'ucs="$upstream_cache_status" ua="$upstream_addr" us="$upstream_status" '
+                        'uct="$upstream_connect_time" urt="$upstream_response_time"';
+
+    access_log  /var/log/angie/access.log  main;
+
+    sendfile        on;
+    #tcp_nopush     on;
+
+    keepalive_timeout  65;
+    keepalive_requests 2000;
+
+    proxy_cache_valid 1m;
+    proxy_cache_key $scheme$host$request_uri;
+    proxy_cache_path /var/www/cache levels=1:2 keys_zone=one:10m:file=/etc/angie/cache.state inactive=4h max_size=800m;
+
+    #gzip  on;
+
+    server {
+
+       listen unix:/tmp/angie_hcheck.sock; # Unix-сокет for health-checking
+       access_log off;
+       error_log /dev/null;
+       default_type text/plain;
+       return 200 'ok\n';
+    }
+
+    include /etc/angie/http.d/*.conf;
+}
+
+#stream {
+#    include /etc/angie/stream.d/*.conf;
+#}

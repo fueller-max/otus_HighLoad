@@ -1,0 +1,51 @@
+ 
+    - name: Install Nginx and PHP packages
+      ansible.builtin.apt: 
+        name:
+          - nginx
+          - php-fpm
+          - php-mysql
+          - php-curl
+          - php-gd
+          - php-mbstring
+          - php-xml
+          - php-xmlrpc
+          - php-soap
+          - php-intl
+          - php-zip
+        state: present
+      tags: [always] 
+
+    # - name: Create directory for files Wordpress
+    #   ansible.builtin.file:
+    #    path: "{{ wordpress_www_dir }}"
+    #    state: directory
+    #    owner: root
+    #    group: root
+    #    mode: '0777' 
+    #   tags: [always] 
+
+    - name: Create folder for Wordpress in GFS2 shared folder
+      ansible.builtin.file:
+       path: "{{ gfs2_shared_folder }}"
+       state: directory
+       owner: root
+       group: root
+       mode: '0777'  
+      tags: [always] 
+       
+    - name: Create a symbolic link for a folder
+      ansible.builtin.shell:
+          ln -s -T "{{ gfs2_shared_folder }}" /var/www/wordpress
+      tags: [always] 
+    
+    - name: Download and unpack WordPress
+      ansible.builtin.shell: |
+         mkdir /var/www/wordpresstar
+         cd /var/www/wordpresstar
+         wget https://wordpress.org/latest.tar.gz
+         tar -xzf latest.tar.gz
+         cp -a wordpress/. /var/www/wordpress/
+      tags: [always]   
+      when: ansible_facts["hostname"] == "lab04-backend1"
+      

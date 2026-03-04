@@ -1,0 +1,32 @@
+all:
+  children:
+     fileservers:
+      hosts:
+        lab04-iscsi:
+          ansible_host: 192.168.70.46
+        
+     databases:
+      hosts:
+        lab04-database:
+          ansible_host: 192.168.70.47     
+     
+     backends:
+      hosts:
+        lab04-backend1: 
+          ansible_host: 192.168.70.43 
+        lab04-backend2: 
+          ansible_host: 192.168.70.44 
+        lab04-backend3: 
+          ansible_host: 192.168.70.45
+
+     loadbalancers:
+       hosts:
+        lab04-load-balancer-1: 
+          ansible_host: 192.168.70.41 
+        lab04-load-balancer-2: 
+          ansible_host: 192.168.70.42      
+           
+  vars:
+      ansible_user: deploy
+      ansible_connection: ssh 
+      ansible_python_interpreter : /usr/bin/python3.12   

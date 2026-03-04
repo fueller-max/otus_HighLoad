@@ -1,0 +1,119 @@
+- name: Copy config for rsync
+  ansible.builtin.template:
+      src:  templates/rsyncd.conf.j2        
+      dest: /etc/rsyncd.conf   
+      owner: root                           
+      group: root                           
+      mode: '0644'
+  notify: Restart rsync   
+  tags:
+        - configure
+        - syncronization
+  when:
+        - "'configure' in ansible_run_tags"
+        - "'syncronization' in ansible_run_tags"      
+
+- name: Copy syncronization config for Angie
+  ansible.builtin.template:
+      src:  templates/angiehasync.conf.j2        
+      dest: /etc/angiehasync/angiehasync.conf   
+      owner: root                           
+      group: root                           
+      mode: '0644'  
+  tags: 
+       - configure
+       - syncronization
+  when: 
+      - ansible_facts["hostname"] == "lab04-load-balancer-1"
+      - "'configure' in ansible_run_tags"
+      - "'syncronization' in ansible_run_tags"  
+
+- name: Create directory for cache
+  ansible.builtin.file:
+    path: /var/www/cache
+    state: directory
+    owner: root
+    group: root
+    mode: '0777'  
+  tags: [always] 
+  
+- name: Copy health-checking && HL config for Angie
+  ansible.builtin.template:
+      src:  templates/angie.conf.j2       
+      dest: /etc/angie/angie.conf  
+      owner: root                           
+      group: root                           
+      mode: '0644'
+  notify: Restart Angie        
+  tags: [always]  
+
+- name: Copy config for loadbalancing for Angie
+  ansible.builtin.template:
+      src:  templates/default.conf.j2        
+      dest: /etc/angie/http.d/default.conf   
+      owner: root                           
+      group: root                           
+      mode: '0644'
+  notify: Restart Angie    
+  tags: [always] 
+
+- name: 5 second pause
+  ansible.builtin.pause:
+    seconds: 5
+  tags: 
+        - configure
+        - syncronization   
+  when:
+        - "'configure' in ansible_run_tags"
+        - "'syncronization' in ansible_run_tags"       
+
+- name: Start Angie config syncronization
+  ansible.builtin.shell: |
+     angiehasync -Sd
+  tags: 
+       - configure
+       - syncronization    
+  when: 
+      - ansible_facts["hostname"] == "lab04-load-balancer-1" 
+      - "'configure' in ansible_run_tags"
+      - "'syncronization' in ansible_run_tags"     
+
+
+- name: Keepalived. Enable kernel interface binding
+  ansible.builtin.shell: |
+      sysctl -w net.ipv4.ip_nonlocal_bind=1
+
+      
+- name: Keepalived.Copy config
+  ansible.builtin.template:
+      src:  templates/keepalived.conf.j2       
+      dest: /etc/keepalived/keepalived.conf  
+      owner: root                           
+      group: root                           
+      mode: '0644'
+  notify: Restart Keepalived    
+  tags: [always]  
+
+
+- name: TLS. Ensure config path exists
+  ansible.builtin.file:
+    path:  "{{ conf_dir }}"
+    state: directory
+    mode: '0755'
+  tags: [always]
+
+
+- name: Create private key (RSA, 4096 bits)
+  community.crypto.openssl_privatekey:
+    path: "{{ conf_dir }}/{{ proj_name }}.key"
+  when:  tls_enabled  
+  tags: [always]
+
+- name: Create simple self-signed certificate
+  community.crypto.x509_certificate:
+    path: "{{ conf_dir }}/{{ proj_name }}.pem"
+    privatekey_path: "{{ conf_dir }}/{{ proj_name }}.key"
+    provider: selfsigned
+  when:  tls_enabled   
+  tags: [always] 
+

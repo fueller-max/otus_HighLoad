@@ -1,0 +1,126 @@
+{% if 'hash_balancing' in ansible_run_tags %}
+
+upstream backend {
+    zone backend 1m;
+    hash $remote_addr consistent;
+    server  {{ ip_server_backend1 }}:8080 max_fails=3 fail_timeout=30s;
+    server  {{ ip_server_backend2 }}:8080 max_fails=3 fail_timeout=30s;
+    server  {{ ip_server_backend3 }}:8080 max_fails=3 fail_timeout=30s;
+}
+
+{% else %}
+
+upstream backend {
+    zone backend 1m;
+    server  {{ ip_server_backend1 }}:8080 max_fails=3 fail_timeout=30s;
+    server  {{ ip_server_backend2 }}:8080 max_fails=3 fail_timeout=30s;
+    server  {{ ip_server_backend3 }}:8080 max_fails=3 fail_timeout=30s;
+}
+
+{% endif %}
+
+
+server {
+
+  {% if inventory_hostname == "lab04-load-balancer-1" %}
+    listen  80;
+     {% if tls_enabled %}
+    listen 443 ssl;
+     {% endif %}
+  {% elif inventory_hostname == "lab04-load-balancer-2" %}
+    listen  80;
+     {% if tls_enabled %}
+    listen 443 ssl;
+     {% endif %}
+  {% endif %}
+
+  {% if tls_enabled %}
+    ssl_certificate "{{ conf_dir }}/{{ proj_name }}.pem";
+    ssl_certificate_key "{{ conf_dir }}/{{ proj_name }}.key";
+      
+    # Protocols & Ciphers (Modern standard)
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers 'ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:DHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384';
+    ssl_prefer_server_ciphers off; # Recommended for TLS 1.3
+
+    # Performance & Optimization
+    ssl_session_timeout 1d;
+    ssl_session_cache shared:MozSSL:10m;  # About 40000 sessions
+    ssl_session_tickets off;
+
+  {% endif %} 
+  
+    server_name  localhost;
+    status_zone single;
+
+    #access_log  /var/log/angie/host.access.log  main;
+
+    location / {
+        proxy_pass http://backend;
+        proxy_set_header Host      $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        
+        proxy_cache one;
+        proxy_cache_valid 200 302  10m;
+        proxy_cache_valid 404      1h;
+        proxy_cache_lock on;
+        proxy_cache_background_update on;
+    }
+
+    location /status/ {
+        api     /status/;
+        allow   127.0.0.1;
+        deny    all;
+    }
+
+    #error_page  404              /404.html;
+
+    # redirect server error pages to the static page /50x.html
+    #
+    error_page   500 502 503 504  /50x.html;
+    location = /50x.html {
+        root   /usr/share/angie/html;
+    }
+
+    # proxy the PHP scripts to Apache listening on 127.0.0.1:80
+    #
+    #location ~ \.php$ {
+    #    proxy_pass   http://127.0.0.1;
+    #}
+
+    # pass the PHP scripts to FastCGI server listening on 127.0.0.1:9000
+    #
+    #location ~ \.php$ {
+    #    root           html;
+    #    fastcgi_pass   127.0.0.1:9000;
+    #    fastcgi_index  index.php;
+    #    fastcgi_param  SCRIPT_FILENAME  /scripts$fastcgi_script_name;
+    #    include        fastcgi_params;
+    #}
+
+    # deny access to .htaccess files, if Apache's document root
+    # concurs with angie's one
+    #
+    #location ~ /\.ht {
+    #    deny  all;
+    #}
+
+    location /console/ {
+
+    
+    allow 192.168.0.0/16;
+    deny all;
+
+    auto_redirect on;
+
+    alias /usr/share/angie-console-light/html/;
+    # Только во FreeBSD:
+    # alias /usr/local/www/angie-console-light/html/;
+    index index.html;
+
+    location /console/api/ {
+        api /status/;
+    }
+
+}
+}

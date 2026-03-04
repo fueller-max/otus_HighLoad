@@ -1,0 +1,10 @@
+[angie] # Директория с конфигурацией Angie
+    path = /etc/angie
+# Пользователь для синхронизации
+    uid = angie-ha-sync
+# Группа пользователя
+    gid = angie-ha-sync
+# IP или подсеть, с которой разрешено подключение
+    hosts allow = {{ vrrp_net }}
+# Запретить все остальные
+    hosts deny = *

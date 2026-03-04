@@ -1,0 +1,89 @@
+#SPDX-License-Identifier: MIT-0
+---
+# tasks file for ha-gfs-infra
+
+  ## https://manpages.ubuntu.com/manpages/focal/man5/gfs2.5.html    
+
+- name: Install list of all neccessary packages
+  package:
+      name:
+          - gfs2-utils 
+          - corosync 
+          - dlm-controld
+          - pacemaker
+          - pcs
+          - psmisc
+          - crmsh
+          - resource-agents
+      state: present
+
+- name: Template and copy corosync.conf  
+  ansible.builtin.template:
+      src:  templates/corosync.conf.j2         
+      dest: /etc/corosync/corosync.conf     
+      owner: root                           
+      group: root                           
+      mode: '0644'      
+  notify:
+      Restart Corosync service
+
+- name: Create dir for dlm config 
+  ansible.builtin.file:
+    path: /etc/dlm/
+    state: directory      
+     
+- name: Template and copy dlm.conf 
+  ansible.builtin.template:
+      src:  templates/dlm.conf.j2         
+      dest: /etc/dlm/dlm.conf    
+      owner: root                           
+      group: root                           
+      mode: '0644'
+  notify:
+      Restart dlm service   
+
+- name: Create File System GFS2 on the first client  
+  ansible.builtin.shell: |
+        echo "y" | mkfs.gfs2 -p lock_dlm -t {{ corosync_cluster_name }}:clusterdisk -j 3 {{ dev }}
+  when: ansible_facts["hostname"] ==  "lab04-backend1"      
+
+- name: Create mount point on each client 
+  ansible.builtin.file:
+    path: /mnt/gfs2/
+    state: directory
+
+- name: Disable STONITH (only in dev/test mode!!!)
+  ansible.builtin.shell: |
+        pcs property set stonith-enabled=false
+
+## ------------  Mount manually gfs2 --------------------------------------
+## In prod must be made by Pacemaker!
+
+- name: Read UUID of a created disk 
+  ansible.builtin.shell:  blkid -s UUID -o value /dev/sda
+  register: sda_uuid
+ 
+- name: Print the value of UUID 
+  ansible.builtin.debug:
+    var: sda_uuid.stdout
+  when: ansible_facts["hostname"] == "lab04-backend1"   
+
+- name: Mount disk using UUID
+  ansible.builtin.shell: |
+      mount -U {{ sda_uuid.stdout }} /mnt/gfs2/ -o noatime   
+
+- name: Template and copy mountGFS2.service for mount/unmount during start/stop
+  ansible.builtin.template:
+      src:  templates/mountGFS2.service.j2        
+      dest: /etc/systemd/system/mountGFS2.service    
+      owner: root                           
+      group: root                           
+      mode: '0644'
+
+- name: Start and enable mountGFS2.service 
+  ansible.builtin.systemd_service:
+    name: mountGFS2.service
+    state: started
+    enabled: true      
+
+## ----------------------------------------------------------------

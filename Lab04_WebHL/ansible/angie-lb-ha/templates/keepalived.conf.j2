@@ -1,0 +1,46 @@
+global_defs {
+    enable_script_security
+}
+
+vrrp_script angie_check {
+    script "/usr/bin/curl -s --connect-timeout 5 -A 'angie_hcheck_script' --no-buffer -XGET --unix-socket /tmp/angie_hcheck.sock http://hcheck/"
+    interval 5
+    user root
+}
+
+vrrp_instance angie {
+
+  {% if inventory_hostname == "lab04-load-balancer-1" %}
+    state MASTER
+  {% elif inventory_hostname == "lab04-load-balancer-2" %}
+    state SLAVE
+  {% endif %}
+    interface eth1   
+    virtual_router_id 254 
+  {% if inventory_hostname == "lab04-load-balancer-1" %}
+    priority 100
+  {% elif inventory_hostname == "lab04-load-balancer-2" %}
+    priority 99
+  {% endif %}    
+    
+    advert_int 1 
+ 
+  {% if inventory_hostname == "lab04-load-balancer-1" %}
+    unicast_src_ip {{ vrrp_master_ip }}
+    unicast_peer {
+        {{ vrrp_slave_ip }}
+    }
+  {% elif inventory_hostname == "lab04-load-balancer-2" %}
+    unicast_src_ip {{ vrrp_slave_ip }}
+    unicast_peer {
+        {{ vrrp_master_ip }}
+    }
+  {% endif %}
+    
+
+    virtual_ipaddress {
+        {{ vip }} dev eth0
+    } track_script {
+        angie_check
+    }
+}

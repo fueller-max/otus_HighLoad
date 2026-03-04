@@ -1,0 +1,77 @@
+
+- name: Create a dedicated user on both nodes
+  ansible.builtin.user:
+    name: angie-ha-sync
+    create_home: yes
+    group: admin
+  tags:
+       - ssh
+       - syncronization
+
+- name: Create a 2048-bit SSH key for user angie-ha-sync in ~angie-ha-sync/.ssh/id_rsa
+  ansible.builtin.user:
+    name: angie-ha-sync
+    generate_ssh_key: yes
+    ssh_key_bits: 2048
+    ssh_key_file: .ssh/id_rsa
+  tags:
+       - ssh
+       - syncronization  
+
+- name: Fetch public ssh key from 1st node
+  ansible.builtin.shell: cat ~angie-ha-sync/.ssh/id_rsa.pub
+  register: pub_ssh_key
+  tags:
+       - ssh
+       - syncronization
+  when: ansible_facts["hostname"] == "lab04-load-balancer-1"            
+
+- name: Display ssh key node 1
+  ansible.builtin.debug:
+        msg: "{{ hostvars['lab04-load-balancer-1']['pub_ssh_key'].stdout }}"
+  tags:
+       - ssh
+       - syncronization      
+  when: ansible_facts["hostname"] == "lab04-load-balancer-1"
+
+- name: Deploy SSH public key 1 -> 2 node 
+  ansible.posix.authorized_key:
+        user: angie-ha-sync
+        state: present
+        key: "{{ hostvars['lab04-load-balancer-1']['pub_ssh_key'].stdout }}"
+        manage_dir: yes
+  tags:
+       - ssh
+       - syncronization
+  when: ansible_facts["hostname"] == "lab04-load-balancer-2"
+
+
+- name: Fetch public ssh key from 2nd node
+  ansible.builtin.shell: cat ~angie-ha-sync/.ssh/id_rsa.pub
+  register: pub_ssh_key
+  tags:
+       - ssh 
+       - syncronization      
+  when: ansible_facts["hostname"] == "lab04-load-balancer-2"
+
+- name: Display ssh key node 2
+  ansible.builtin.debug:
+        msg: "{{ hostvars['lab04-load-balancer-2']['pub_ssh_key'].stdout }}"
+  tags:
+       - ssh  
+       - syncronization    
+  when: ansible_facts["hostname"] == "lab04-load-balancer-2"      
+  
+- name: Deploy SSH public key 2->1 node 
+  ansible.posix.authorized_key:
+        user: angie-ha-sync
+        state: present
+        key: "{{ hostvars['lab04-load-balancer-2']['pub_ssh_key'].stdout }}"
+        manage_dir: yes
+  tags:
+       - ssh   
+       - syncronization  
+  when: ansible_facts["hostname"] == "lab04-load-balancer-1"
+  
+
+

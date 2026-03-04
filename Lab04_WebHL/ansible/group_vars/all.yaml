@@ -1,0 +1,77 @@
+##------------------iSCSI ---------------------------------------
+
+## -- iSCSI target
+
+ign:        "iqn.2026-03.lab04.org.test"
+target_iqn: "iqn.2026-03.lab04.org.test:target1"
+target_portal: "10.10.40.41"  
+
+lvm_size: "5G"
+
+iscsi_clients:
+  - name: "gfs1"
+    ip: 10.10.40.43
+  - name: "gfs2"
+    ip: 10.10.40.44
+  - name: "gfs3" 
+    ip: 10.10.40.45  
+
+
+##---------------------------------------------------------------
+
+##-------- GFS2, Corosync ---------------------------------------
+
+## Corosync
+corosync_cluster_name: "gfs2cluster"
+
+## GFS2
+dev:  "/dev/sda" 
+
+##------------------------------------------------------------------
+
+
+##---------------DataBase -----------------------------------------
+
+database_name: "wordpress_db"
+database_user: "wp_user"
+database_password: "strong_password"
+
+bind_address: "10.10.30.41"
+host_usr_addr: "10.10.30.0/24"
+
+##-----------------------------------------------------------------
+
+## --------------WordPress-----------------------------------------
+
+gfs2_shared_folder: "/mnt/gfs2/wordpress"
+wordpress_www_dir:  "/var/www/wordpress"
+
+domain: "lab04.dev.net"
+
+listen_port1: "8080"
+
+database_ip: "10.10.30.41"
+
+##----------------------------------------------------------------
+
+## ----------Load Balancers Angie ---------------------------------
+
+proj_name: "lab04"
+conf_dir: /etc/angie/conf
+
+ip_server_backend1: "10.10.20.43"
+ip_server_backend2: "10.10.20.44"
+ip_server_backend3: "10.10.20.45"
+
+
+vrrp_net: "10.10.10.0/24"
+
+vrrp_master_ip: "10.10.10.41"
+vrrp_slave_ip: "10.10.10.42"
+
+
+vip: "192.168.70.12"
+balancer_1_ip: "192.168.70.41"
+balancer_2_ip: "192.168.70.42"
+
+##----------------------------------------------------------------

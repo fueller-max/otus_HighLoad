@@ -1,0 +1,27 @@
+
+- name: Copy Nginx config for wordpress
+  ansible.builtin.template:
+      src:  templates/nginxwordpress.j2         
+      dest: /etc/nginx/sites-available/wordpress    
+      owner: root                           
+      group: root                           
+      mode: '0644' 
+  tags: [always] 
+
+- name: Enable site for Nginx
+  ansible.builtin.file: 
+    src: /etc/nginx/sites-available/wordpress
+    dest: /etc/nginx/sites-enabled/wordpress
+    state: link
+    mode: '0777' 
+  tags: [always]
+  notify: Restart Nginx 
+
+- name: Copy wp-config.php 
+  ansible.builtin.template:
+      src:   templates/wp-config.php.j2        
+      dest: /var/www/wordpress/wp-config.php   
+      owner: root                           
+      group: root                           
+      mode: '0644' 
+  tags: [always] 
