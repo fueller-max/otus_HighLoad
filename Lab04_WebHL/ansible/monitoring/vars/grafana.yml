@@ -1,0 +1,6 @@
+grafana_username: "admin"
+grafana_password: "grafana"
+
+grafana_persitent_data: "/var/lib/grafana"
+dir_datasources:        "/etc/grafana/datasources"
+dir_alerting:           "/etc/grafana/alerting"

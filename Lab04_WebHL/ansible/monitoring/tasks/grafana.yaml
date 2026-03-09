@@ -1,0 +1,63 @@
+- name: Ensure Docker is running
+  ansible.builtin.service:
+    name: docker
+    state: started
+    enabled: true
+  tags: [always]
+
+- name: Load variables form file
+  ansible.builtin.include_vars:
+    file: grafana.yml  
+  tags: [always]
+
+- name: Create Grafana data directory for persistent data
+  ansible.builtin.file:
+    path: "{{ grafana_persitent_data }}"
+    state: directory
+    owner: root
+    group: root
+    mode: '0777'
+  tags: [always]
+
+- name: Create Grafana data directory for datasources
+  ansible.builtin.file:
+    path: "{{ dir_datasources }}"
+    state: directory
+    owner: root
+    group: root
+    mode: '0777'    
+  tags: [always]
+
+- name: Create Grafana data directory for alerts
+  ansible.builtin.file:
+    path: "{{ dir_alerting }}"
+    state: directory
+    owner: root
+    group: root
+    mode: '0777'     
+  tags: [always]
+
+- name: Run Grafana Docker container
+  community.docker.docker_container:
+    name: grafana
+    image: grafana/grafana:latest                                          # Or a specific version, e.g., grafana/grafana:10.4.3
+    state: started
+    restart_policy: always
+    ports:
+          - "3000:3000"                                                    # Map host port 3000 to container port 3000
+    volumes:
+          - "{{ grafana_persitent_data }}:/var/lib/grafana"                # Mount volume for persistent data
+          - "{{ dir_datasources }}:/etc/grafana/provisioning/datasources"
+          - "{{ dir_alerting }}:/etc/grafana/provisioning/alerting"
+    env:
+          GF_SECURITY_ADMIN_USER: "{{ grafana_username }}"
+          GF_SECURITY_ADMIN_PASSWORD: "{{ grafana_password }}"
+  tags: [always]
+
+- name: Wait for container port to be available
+  ansible.builtin.wait_for:
+    port: 3000
+    host: "{{ ansible_facts.default_ipv4.address }}"
+    timeout: 30
+    state: started   
+  tags: [always]

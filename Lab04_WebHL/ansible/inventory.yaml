@@ -24,7 +24,12 @@ all:
         lab04-load-balancer-1: 
           ansible_host: 192.168.70.41 
         lab04-load-balancer-2: 
-          ansible_host: 192.168.70.42      
+          ansible_host: 192.168.70.42   
+     
+     monitoring:
+       hosts:
+        lab04_monitoring:
+         ansible_host: 192.168.70.48      
            
   vars:
       ansible_user: deploy

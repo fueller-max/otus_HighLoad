@@ -77,3 +77,21 @@
         - role: angie-lb-ha  
 
 ##-----------------------------------------------------------------------------
+
+
+## ------------Provision Monitoring service ----------------------------------
+- name: Provision Monitoring machine (Prometheus&Grafana)
+  hosts: lab04_monitoring
+  become: true
+  roles:
+          - monitoring
+
+- name: Install Node Exporter on all hosts
+  hosts: all
+  become: true
+  roles:
+          - node-exporter
+  tags: 
+       - node-exp           
+##----------------------------------------------------------------------------
+

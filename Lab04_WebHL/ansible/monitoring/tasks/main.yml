@@ -1,0 +1,20 @@
+#SPDX-License-Identifier: MIT-0
+---
+# tasks file for monitoring
+
+- name: Install Docker
+  ansible.builtin.include_tasks: docker.yaml
+  tags: [always]
+
+- name: Deploy and run grafana
+  ansible.builtin.include_tasks: grafana.yaml
+  tags: 
+        - grafana
+
+- name: Deploy and run prometheus
+  ansible.builtin.include_tasks: prometheus.yaml
+  tags: 
+        - prometheus
+
+
+

@@ -15,6 +15,8 @@ http {
     include       /etc/angie/mime.types;
     default_type  application/octet-stream;
 
+    include prometheus_all.conf;
+
     log_format  main  '$remote_addr - $remote_user [$time_local] "$request" '
                       '$status $body_bytes_sent "$http_referer" '
                       '"$http_user_agent" "$http_x_forwarded_for"';
@@ -47,6 +49,15 @@ http {
        error_log /dev/null;
        default_type text/plain;
        return 200 'ok\n';
+    }
+    
+    server {
+ 
+       listen {{ ansible_facts['eth0']['ipv4']['address'] }}:9080;
+
+       location =/p8s {
+        prometheus all;
+       }
     }
 
     include /etc/angie/http.d/*.conf;

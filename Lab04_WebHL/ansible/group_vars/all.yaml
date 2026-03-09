@@ -75,3 +75,30 @@ balancer_1_ip: "192.168.70.41"
 balancer_2_ip: "192.168.70.42"
 
 ##----------------------------------------------------------------
+
+## ------- Nodes for Prometheus ----------------------------------
+
+nodes_exporters:
+  - name: "lab04-load-balancer-1"
+    ip: "192.168.70.41:9100"
+  - name: "lab04-load-balancer-2"
+    ip: "192.168.70.42:9100"
+  - name: "lab04-backend1"
+    ip: "192.168.70.43:9100"
+  - name: "lab04-backend2"
+    ip: "192.168.70.44:9100"
+  - name: "lab04-backend3"
+    ip: "192.168.70.45:9100"
+  - name: "lab04-iscsi"
+    ip: "192.168.70.46:9100" 	
+  - name: "lab04-database"
+    ip: "192.168.70.47:9100"
+
+nodes_angie:
+  - name: "lab04-load-balancer-angie-1"
+    ip: "192.168.70.41:9080"
+  - name: "lab04-load-balancer-angie-2"
+    ip: "192.168.70.42:9080"  
+    
+prometheus_ip: "192.168.70.48"
+##----------------------------------------------------------------
