@@ -28,7 +28,7 @@ http {
                         'ucs="$upstream_cache_status" ua="$upstream_addr" us="$upstream_status" '
                         'uct="$upstream_connect_time" urt="$upstream_response_time"';
 
-    access_log  /var/log/angie/access.log  main_ext buffer=16k flush=10s;
+    access_log  /var/log/angie/access.log  main buffer=16k flush=10s;
 
     sendfile       on;
     tcp_nopush     on;
@@ -40,6 +40,9 @@ http {
     proxy_cache_valid 1m;
     proxy_cache_key $scheme$host$request_uri;
     proxy_cache_path /var/www/cache levels=1:2 keys_zone=one:10m:file=/etc/angie/cache.state inactive=4h max_size=800m;
+
+    limit_conn_zone $binary_remote_addr zone=addr:10m;
+    limit_req_zone $binary_remote_addr zone=req_limit_per_ip:10m rate=50r/s; # Limit rate 50 request/s from one IP
 
     #gzip  on;
 

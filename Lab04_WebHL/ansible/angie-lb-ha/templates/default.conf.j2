@@ -55,11 +55,9 @@ server {
 
     access_log  /var/log/angie/host.access.log  main;
 
-    limit_conn_zone $binary_remote_addr zone=addr:10m;
-    limit_req_zone $binary_remote_addr zone=req_limit_per_ip:10m rate=50r/s; # Limit rate 50 request/s from one IP
     location / {
         
-        limit_conn addr 1; # Not more than 1 connections from one IP
+        limit_conn addr 5; # Not more than 5 connections from one IP
         limit_req zone=req_limit_per_ip burst=5 nodelay; 
           
         proxy_pass http://backend;
