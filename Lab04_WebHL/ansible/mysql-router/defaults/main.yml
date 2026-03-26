@@ -1,0 +1,14 @@
+#SPDX-License-Identifier: MIT-0
+---
+# defaults file for mysql-router
+mysql_router_user: "mysql_router"
+mysql_router_password: "mysql_router_pass"
+mysql_cluster_user: "clusteradmin"
+mysql_cluster_password: "cluster_admin_password"
+mysql_port: 3306
+router_install_dir: "/opt/mysql-router"
+router_config_dir: "{{ router_install_dir }}/conf"
+router_log_dir: "{{ router_install_dir }}/log"
+router_data_dir: "{{ router_install_dir }}/data"
+router_rw_port: 6446
+router_ro_port: 6447

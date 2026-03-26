@@ -1,0 +1,5 @@
+- name: Provision InnoDB Mysql Cluster
+  hosts: databases
+  become: true
+  roles:
+        - role: innodb-mysql-cluster     

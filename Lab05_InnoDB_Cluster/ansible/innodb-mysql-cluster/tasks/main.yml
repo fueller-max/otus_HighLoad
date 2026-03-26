@@ -1,0 +1,18 @@
+#SPDX-License-Identifier: MIT-0
+---
+# tasks file for innodb-mysql-cluster
+- name: Install Mysql
+  block:
+   - ansible.builtin.include_tasks: 
+      file: install.yaml
+  tags: 
+     - install
+  when: ansible_facts["os_family"] == "Debian"
+
+- name: Provision Mysql InnDB Cluster
+  block:
+   - ansible.builtin.include_tasks: 
+       file: provision.yaml
+  tags: 
+     - provision
+  when: ansible_facts["os_family"] == "Debian"

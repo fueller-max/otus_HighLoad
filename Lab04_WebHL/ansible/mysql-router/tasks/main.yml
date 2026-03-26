@@ -1,0 +1,67 @@
+#SPDX-License-Identifier: MIT-0
+---
+#tasks file for mysql-router
+- name: Install MySQL Router
+  apt:
+    name: mysql-router
+    state: present
+  when: ansible_os_family == "Debian"
+
+
+- name: Create a user mysql no login shell
+  ansible.builtin.user:
+    name: mysql
+    shell: /usr/sbin/nologin
+    state: present
+    createhome: false 
+
+- name: Create MySQL Router directories
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: mysql
+    group: mysql
+    mode: '0777'
+  loop:
+    - "{{ router_config_dir }}"
+    - "{{ router_log_dir }}"
+    - "{{ router_data_dir }}"
+ 
+
+# - name: Bootstrap MySQL Router configuration (non-interactive)
+#   command: >
+#     mysqlrouter --bootstrap {{ mysql_cluster_user }}@{{ cluster_nodes[0].ip }}:{{ mysql_port }}
+#     --directory {{ router_data_dir }}
+#     --user mysql
+#     --connect-timeout 30
+#   environment:
+#     MYSQL_PWD: "{{ mysql_cluster_password }}"
+#   args:
+#     creates: "{{ router_data_dir }}/mysqlrouter.conf"
+#   register: bootstrap_result
+#   failed_when: bootstrap_result.rc != 0 and "already exists" not in bootstrap_result.stderr
+
+# - name: Bootstrap MySQL Router configuration
+#   command: >
+#     mysqlrouter --bootstrap {{ mysql_cluster_user }}@{{ cluster_nodes[0].ip }}:{{ mysql_port }}
+#     --directory {{ router_data_dir }}
+#     --user mysql
+#   environment:
+#     MYSQL_PWD: "{{ mysql_cluster_password }}"
+#   args:
+#     creates: "{{ router_data_dir }}/mysqlrouter.conf"
+#   no_log: true
+
+- name: Copy custom MySQL Router configuration template
+  template:
+    src: mysqlrouter.conf.j2
+    dest: "{{ router_data_dir }}/mysqlrouter.conf"
+    owner: mysql
+    group: mysql
+    mode: '0644'
+
+- name: Ensure MySQL Router service is started and enabled
+  systemd:
+    name: mysqlrouter
+    state: started
+    enabled: yes

@@ -1,0 +1,12 @@
+#SPDX-License-Identifier: MIT-0
+---
+# defaults file for innodb-mysql-cluster
+  mysql_root_password: "your_secure_password"
+  cluster_name: MyInnoDBCluster
+  admin_user: "clusteradmin"
+  admin_password: "cluster_admin_password"
+
+  mysql_router_user: "mysql_router"
+  mysql_router_password: "mysql_router_pass"
+
+  

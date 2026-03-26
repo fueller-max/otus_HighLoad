@@ -1,0 +1,23 @@
+all:
+  children:
+     databases:
+      hosts:
+        lab05-node-db1:
+          ansible_host: 192.168.70.51 
+          server_id: 1001
+          cluster_node: "cluster-node-db1"
+          cluster_net_addr: 10.10.30.51
+        lab05-node-db2:
+          ansible_host: 192.168.70.52
+          server_id: 1002
+          cluster_node: "cluster-node-db2"
+          cluster_net_addr: 10.10.30.52
+        lab05-node-db3:
+          ansible_host: 192.168.70.53
+          server_id: 1003       
+          cluster_node: "cluster-node-db3"
+          cluster_net_addr: 10.10.30.53 
+  vars:
+      ansible_user: deploy
+      ansible_connection: ssh 
+      ansible_python_interpreter : /usr/bin/python3.12   
