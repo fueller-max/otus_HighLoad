@@ -7,135 +7,135 @@
       group: root                           
       mode: '0644'
 
-# - name: Ensure that file hosts not get overwritten by cloud init anymore
-#   ansible.builtin.lineinfile:
-#     path: /etc/cloud/cloud.cfg
-#     regexp: '.*?update_etc_hosts' 
-#     line: '# - update_etc_hosts' # The desired line
-#     create: true # Create file if it does not exist
-#     backup: true # Create a backup of the original file     
+- name: Ensure that file hosts not get overwritten by cloud init anymore
+  ansible.builtin.lineinfile:
+    path: /etc/cloud/cloud.cfg
+    regexp: '.*?update_etc_hosts' 
+    line: '# - update_etc_hosts' # The desired line
+    create: true # Create file if it does not exist
+    backup: true # Create a backup of the original file     
 
-# - name: Set MySQL basic config
-#   ansible.builtin.template:
-#       src:  templates/mysqld.cnf.j2         
-#       dest: /etc/mysql/mysql.conf.d/mysqld.cnf     
-#       owner: root                           
-#       group: root                           
-#       mode: '0644'
-#   notify:  Restart MySQL
+- name: Set MySQL basic config
+  ansible.builtin.template:
+      src:  templates/mysqld.cnf.j2         
+      dest: /etc/mysql/mysql.conf.d/mysqld.cnf     
+      owner: root                           
+      group: root                           
+      mode: '0644'
+  notify:  Restart MySQL
 
-# - name: Ensure MySQL service is running
-#   systemd:
-#       name: mysql
-#       state: started
-#       enabled: yes   
+- name: Ensure MySQL service is running
+  systemd:
+      name: mysql
+      state: started
+      enabled: yes   
 
-# - name: Create .my.cnf with MySQL credentials
-#   copy:
-#     content: |
-#       [client]
-#       user=root
-#       password={{ mysql_root_password }}
-#     dest: /root/.my.cnf
-#     mode: '0600'
+- name: Create .my.cnf with MySQL credentials
+  copy:
+    content: |
+      [client]
+      user=root
+      password={{ mysql_root_password }}
+    dest: /root/.my.cnf
+    mode: '0600'
 
-# - name: Set MySQL root password 
-#   community.mysql.mysql_user:
-#       name: root
-#       password: "{{ mysql_root_password }}"
-#       priv: "*.*:ALL,GRANT"
-#       host: "%"
-#       login_unix_socket: /var/run/mysqld/mysqld.sock
-#   vars:
-#     ansible_python_interpreter: /opt/mysql-venv/bin/python3     
+- name: Set MySQL root password 
+  community.mysql.mysql_user:
+      name: root
+      password: "{{ mysql_root_password }}"
+      priv: "*.*:ALL,GRANT"
+      host: "%"
+      login_unix_socket: /var/run/mysqld/mysqld.sock
+  vars:
+    ansible_python_interpreter: /opt/mysql-venv/bin/python3     
       
-# - name: Create cluster admin user
-#   community.mysql.mysql_user:
-#       login_user: root
-#       login_password: "{{ mysql_root_password }}"
-#       name: "{{ admin_user }}"
-#       password: "{{ admin_password }}"
-#       priv: "*.*:ALL,GRANT"
-#       host: "%"
-#   vars:
-#     ansible_python_interpreter: /opt/mysql-venv/bin/python3
+- name: Create cluster admin user
+  community.mysql.mysql_user:
+      login_user: root
+      login_password: "{{ mysql_root_password }}"
+      name: "{{ admin_user }}"
+      password: "{{ admin_password }}"
+      priv: "*.*:ALL,GRANT"
+      host: "%"
+  vars:
+    ansible_python_interpreter: /opt/mysql-venv/bin/python3
 
 
-# - name: Configure MySQL instances for InnoDB Cluster
-#   ansible.builtin.shell: |
-#      yes | mysqlsh --user={{ admin_user }} --password={{ admin_password }} --host={{ cluster_node }} --py \
-#      --execute="dba.configure_instance()"
+- name: Configure MySQL instances for InnoDB Cluster
+  ansible.builtin.shell: |
+     yes | mysqlsh --user={{ admin_user }} --password={{ admin_password }} --host={{ cluster_node }} --py \
+     --execute="dba.configure_instance()"
     
-# - name: Create InnoDB Cluster on node1
-#   shell: |
-#     mysqlsh --user={{ admin_user }} --password={{ admin_password }} --host={{ cluster_node }} --py \
-#     --execute='dba.create_cluster("{{ cluster_name }}");'
-#   args:
-#     executable: /bin/bash
-#   run_once: true  
-#   register: cluster_output
-#   delegate_to: "{{ groups.databases | first }}"
+- name: Create InnoDB Cluster on node1
+  shell: |
+    mysqlsh --user={{ admin_user }} --password={{ admin_password }} --host={{ cluster_node }} --py \
+    --execute='dba.create_cluster("{{ cluster_name }}");'
+  args:
+    executable: /bin/bash
+  run_once: true  
+  register: cluster_output
+  delegate_to: "{{ groups.databases | first }}"
 
 
-# - name: Add 2nd node to cluster. Create temporary  script
-#   copy:
-#     content: |
-#       cluster = dba.get_cluster()
-#       cluster.add_instance('{{ hostvars[groups.databases[1]]['cluster_node'] }}')
-#     dest: /tmp/add_instance.py
-#   no_log: true
+- name: Add 2nd node to cluster. Create temporary  script
+  copy:
+    content: |
+      cluster = dba.get_cluster()
+      cluster.add_instance('{{ hostvars[groups.databases[1]]['cluster_node'] }}')
+    dest: /tmp/add_instance.py
+  no_log: true
 
-# - name: Add 2nd node to cluster
-#   shell: |
-#      echo C | mysqlsh --user={{ admin_user }} --password={{ admin_password }} --host={{ cluster_node }} --file=/tmp/add_instance.py
-#   args:
-#     executable: /bin/bash
-#   run_once: true    
-#   delegate_to:  "{{ groups.databases | first }}"
+- name: Add 2nd node to cluster
+  shell: |
+     echo C | mysqlsh --user={{ admin_user }} --password={{ admin_password }} --host={{ cluster_node }} --file=/tmp/add_instance.py
+  args:
+    executable: /bin/bash
+  run_once: true    
+  delegate_to:  "{{ groups.databases | first }}"
 
-# - name: Add 3nd node to cluster.Clean up temporary script
-#   file:
-#     path: /tmp/add_instance.py
-#     state: absent
+- name: Add 3nd node to cluster.Clean up temporary script
+  file:
+    path: /tmp/add_instance.py
+    state: absent
 
-# - name: Add 3rd node to cluster. Create temporary  script
-#   copy:
-#     content: |
-#       cluster = dba.get_cluster()
-#       cluster.add_instance('{{ hostvars[groups.databases[2]]['cluster_node'] }}')
-#     dest: /tmp/add_instance.py
-#   no_log: true
+- name: Add 3rd node to cluster. Create temporary  script
+  copy:
+    content: |
+      cluster = dba.get_cluster()
+      cluster.add_instance('{{ hostvars[groups.databases[2]]['cluster_node'] }}')
+    dest: /tmp/add_instance.py
+  no_log: true
 
-# - name: Add 3rd node to cluster
-#   shell: |
-#      echo C | mysqlsh --user={{ admin_user }} --password={{ admin_password }} --host={{ cluster_node }} --file=/tmp/add_instance.py
-#   args:
-#     executable: /bin/bash
-#   run_once: true    
-#   delegate_to:  "{{ groups.databases | first }}"
+- name: Add 3rd node to cluster
+  shell: |
+     echo C | mysqlsh --user={{ admin_user }} --password={{ admin_password }} --host={{ cluster_node }} --file=/tmp/add_instance.py
+  args:
+    executable: /bin/bash
+  run_once: true    
+  delegate_to:  "{{ groups.databases | first }}"
 
-# - name: Add 3rd node to cluster.Clean up temporary script
-#   file:
-#     path: /tmp/add_instance.py
-#     state: absent
+- name: Add 3rd node to cluster.Clean up temporary script
+  file:
+    path: /tmp/add_instance.py
+    state: absent
 
-# - name: Create MySQL user for MySQL Router
-#   community.mysql.mysql_user:
-#     login_host: "{{ cluster_node }}"
-#     login_user:  root 
-#     login_password: "{{ mysql_root_password }}"
-#     name: "{{ mysql_router_user }}"
-#     password: "{{ mysql_router_password }}"
-#     host: "%"
-#     priv:
-#       "mysql_innodb_cluster_metadata.*": SELECT
-#       "PERFORMANCE_SCHEMA.*": SELECT
-#     state: present
-#   no_log: true
-#   run_once: true    
-#   delegate_to:  "{{ groups.databases | first }}"
-#   vars:
-#       ansible_python_interpreter: /opt/mysql-venv/bin/python3
+- name: Create MySQL user for MySQL Router
+  community.mysql.mysql_user:
+    login_host: "{{ cluster_node }}"
+    login_user:  root 
+    login_password: "{{ mysql_root_password }}"
+    name: "{{ mysql_router_user }}"
+    password: "{{ mysql_router_password }}"
+    host: "%"
+    priv:
+      "mysql_innodb_cluster_metadata.*": SELECT
+      "PERFORMANCE_SCHEMA.*": SELECT
+    state: present
+  no_log: true
+  run_once: true    
+  delegate_to:  "{{ groups.databases | first }}"
+  vars:
+      ansible_python_interpreter: /opt/mysql-venv/bin/python3
 
 
 

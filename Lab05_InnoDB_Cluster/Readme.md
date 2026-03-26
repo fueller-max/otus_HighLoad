@@ -1,4 +1,188 @@
+# Развернуть InnoDB или  PXC кластер
 
+## Цель
+
+Перевести базу веб-проекта на один из вариантов кластера MySQL: Percona XtraDB Cluster или InnoDB Cluster.
+
+## Задание
+
+1. Развернуть отказоустойчивый кластер MySQL(Percona XtraDB Cluster или InnoDB Cluster)
+2. Перевести базу данных веб-проекта на кластер
+
+
+## Решение
+
+### 1. Разворачивание отказоустойчивого кластера MySQL на базе InnoDB Cluster
+
+
+Выполним разворачивание отказоустойчивого кластера MySQL на базе InnoDB Cluster с использованием 3-ех нод. 
+
+Общая схема данного кластера представлена на рисунке:
+
+![innoDB_cluster](/Lab05_InnoDB_Cluster/pics/InnoDB_cluster.jpg)
+
+Кластер состоит из 3 нод, между которыми осуществляется репликация. Мастер(текущая на данный момент) принимает данные как на запись так и на чтение(режим 'RW'). Остальные только на чтение(режим 'RO'). При выходе из строя Мастер ноды, одна из оставшихся берет статус Мастер-ноды. Доступ кластеру осуществляется через MySQL Router, который устанавливается на целевой системе (бекенд) и обеспечивает доступ к базе через локальный адрес на целевой ноде.
+
+
+Развертывание 3 нод дял кластера выполним средствами Terraform на стенде Proxmox. Проект Terraform представлен в папке данной работы.
+
+Настройку узлов кластера осуществим с использованием Ansible. Основной плейбук настройки представлен ниже:
+
+<details>
+  <summary>provision.yaml</summary>
+
+  ```bash
+- name: Replace the whole content of /etc/hosts
+  ansible.builtin.template:
+      src:  templates/hosts.j2          
+      dest: /etc/hosts      
+      owner: root                           
+      group: root                           
+      mode: '0644'
+
+- name: Ensure that file hosts not get overwritten by cloud init anymore
+  ansible.builtin.lineinfile:
+    path: /etc/cloud/cloud.cfg
+    regexp: '.*?update_etc_hosts' 
+    line: '# - update_etc_hosts' # The desired line
+    create: true # Create file if it does not exist
+    backup: true # Create a backup of the original file     
+
+- name: Set MySQL basic config
+  ansible.builtin.template:
+      src:  templates/mysqld.cnf.j2         
+      dest: /etc/mysql/mysql.conf.d/mysqld.cnf     
+      owner: root                           
+      group: root                           
+      mode: '0644'
+  notify:  Restart MySQL
+
+- name: Ensure MySQL service is running
+  systemd:
+      name: mysql
+      state: started
+      enabled: yes   
+
+- name: Create .my.cnf with MySQL credentials
+  copy:
+    content: |
+      [client]
+      user=root
+      password={{ mysql_root_password }}
+    dest: /root/.my.cnf
+    mode: '0600'
+
+- name: Set MySQL root password 
+  community.mysql.mysql_user:
+      name: root
+      password: "{{ mysql_root_password }}"
+      priv: "*.*:ALL,GRANT"
+      host: "%"
+      login_unix_socket: /var/run/mysqld/mysqld.sock
+  vars:
+    ansible_python_interpreter: /opt/mysql-venv/bin/python3     
+      
+- name: Create cluster admin user
+  community.mysql.mysql_user:
+      login_user: root
+      login_password: "{{ mysql_root_password }}"
+      name: "{{ admin_user }}"
+      password: "{{ admin_password }}"
+      priv: "*.*:ALL,GRANT"
+      host: "%"
+  vars:
+    ansible_python_interpreter: /opt/mysql-venv/bin/python3
+
+
+- name: Configure MySQL instances for InnoDB Cluster
+  ansible.builtin.shell: |
+     yes | mysqlsh --user={{ admin_user }} --password={{ admin_password }} --host={{ cluster_node }} --py \
+     --execute="dba.configure_instance()"
+    
+- name: Create InnoDB Cluster on node1
+  shell: |
+    mysqlsh --user={{ admin_user }} --password={{ admin_password }} --host={{ cluster_node }} --py \
+    --execute='dba.create_cluster("{{ cluster_name }}");'
+  args:
+    executable: /bin/bash
+  run_once: true  
+  register: cluster_output
+  delegate_to: "{{ groups.databases | first }}"
+
+
+- name: Add 2nd node to cluster. Create temporary  script
+  copy:
+    content: |
+      cluster = dba.get_cluster()
+      cluster.add_instance('{{ hostvars[groups.databases[1]]['cluster_node'] }}')
+    dest: /tmp/add_instance.py
+  no_log: true
+
+- name: Add 2nd node to cluster
+  shell: |
+     echo C | mysqlsh --user={{ admin_user }} --password={{ admin_password }} --host={{ cluster_node }} --file=/tmp/add_instance.py
+  args:
+    executable: /bin/bash
+  run_once: true    
+  delegate_to:  "{{ groups.databases | first }}"
+
+- name: Add 3nd node to cluster.Clean up temporary script
+  file:
+    path: /tmp/add_instance.py
+    state: absent
+
+- name: Add 3rd node to cluster. Create temporary  script
+  copy:
+    content: |
+      cluster = dba.get_cluster()
+      cluster.add_instance('{{ hostvars[groups.databases[2]]['cluster_node'] }}')
+    dest: /tmp/add_instance.py
+  no_log: true
+
+- name: Add 3rd node to cluster
+  shell: |
+     echo C | mysqlsh --user={{ admin_user }} --password={{ admin_password }} --host={{ cluster_node }} --file=/tmp/add_instance.py
+  args:
+    executable: /bin/bash
+  run_once: true    
+  delegate_to:  "{{ groups.databases | first }}"
+
+- name: Add 3rd node to cluster.Clean up temporary script
+  file:
+    path: /tmp/add_instance.py
+    state: absent
+
+- name: Create MySQL user for MySQL Router
+  community.mysql.mysql_user:
+    login_host: "{{ cluster_node }}"
+    login_user:  root 
+    login_password: "{{ mysql_root_password }}"
+    name: "{{ mysql_router_user }}"
+    password: "{{ mysql_router_password }}"
+    host: "%"
+    priv:
+      "mysql_innodb_cluster_metadata.*": SELECT
+      "PERFORMANCE_SCHEMA.*": SELECT
+    state: present
+  no_log: true
+  run_once: true    
+  delegate_to:  "{{ groups.databases | first }}"
+  vars:
+      ansible_python_interpreter: /opt/mysql-venv/bin/python3
+
+  ```
+</details>
+
+Основные шаги следующие:
+
+1. Настройка DNS - обязателен, т.к. общение в кластере между нодами основано на именах хостов
+2. Базовая настройка MySQL инстанса - bind-адресов и пр.
+3. Настройка базовых пользователей для кластера
+4. Запуск конфигурирования инстанса для работы к кластере InnoDB (через mysqlsh)
+5. Запуск кластера на 1-ой ноде (будет принята за мастер-ноду) (через mysqlsh)
+6. Последовательное добавление 2 и 3 ноды к кластеру (через mysqlsh)
+
+После запуска настройки получаем следующее состояние кластера:
 
 ```bash
 MySQL  cluster-node-db1:3306 ssl  Py > cluster.status()
@@ -47,7 +231,89 @@ MySQL  cluster-node-db1:3306 ssl  Py > cluster.status()
     "groupInformationSourceMember": "cluster-node-db1:3306"
 
 ```
+Видим, что сам кластер собрался, находится в отказоустойчивом состоянии с возможностью выпадания из работы одной ноды. Мастер нода - 1ая, 2 и 3 в состоянии "SECONDARY".
 
+На этом кластер готов к работе настройка самого кластера закончена.
+
+#### 2. Интеграция кластерной базы данных в веб-проект
+
+Осуществим интеграцию созданного кластера в существующий веб-проект из прошлой работы.
+
+Добавим плей Ansible для установки Mysql router на все три хоста бекенда. Данный плей осуществит установку и базовую настройку роутера. Сам bootsrap роутера выполним в ручную.
+
+<details>
+  <summary>mysql-router.yaml</summary>
+
+  ```bash
+  - name: Install MySQL Router
+  apt:
+    name: mysql-router
+    state: present
+  when: ansible_os_family == "Debian"
+
+
+- name: Create a user mysql no login shell
+  ansible.builtin.user:
+    name: mysql
+    shell: /usr/sbin/nologin
+    state: present
+    createhome: false 
+
+- name: Create MySQL Router directories
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: mysql
+    group: mysql
+    mode: '0777'
+  loop:
+    - "{{ router_config_dir }}"
+    - "{{ router_log_dir }}"
+    - "{{ router_data_dir }}"
+
+
+# - name: Bootstrap MySQL Router configuration (non-interactive)
+#   command: >
+#     mysqlrouter --bootstrap {{ mysql_cluster_user }}@{{ cluster_nodes[0].ip }}:{{ mysql_port }}
+#     --directory {{ router_data_dir }}
+#     --user mysql
+#     --connect-timeout 30
+#   environment:
+#     MYSQL_PWD: "{{ mysql_cluster_password }}"
+#   args:
+#     creates: "{{ router_data_dir }}/mysqlrouter.conf"
+#   register: bootstrap_result
+#   failed_when: bootstrap_result.rc != 0 and "already exists" not in bootstrap_result.stderr
+
+# - name: Bootstrap MySQL Router configuration
+#   command: >
+#     mysqlrouter --bootstrap {{ mysql_cluster_user }}@{{ cluster_nodes[0].ip }}:{{ mysql_port }}
+#     --directory {{ router_data_dir }}
+#     --user mysql
+#   environment:
+#     MYSQL_PWD: "{{ mysql_cluster_password }}"
+#   args:
+#     creates: "{{ router_data_dir }}/mysqlrouter.conf"
+#   no_log: true
+
+- name: Copy custom MySQL Router configuration template
+  template:
+    src: mysqlrouter.conf.j2
+    dest: "{{ router_data_dir }}/mysqlrouter.conf"
+    owner: mysql
+    group: mysql
+    mode: '0644'
+
+- name: Ensure MySQL Router service is started and enabled
+  systemd:
+    name: mysqlrouter
+    state: started
+    enabled: yes
+  ```
+
+</details>
+
+После установки запускаем команду bootstrap и получаем следующий вывод:
 
 ```bash
 # Bootstrapping MySQL Router 8.0.45 ((Ubuntu)) instance at '/opt/mysql-router/data'...
@@ -78,9 +344,9 @@ InnoDB Cluster 'MyInnoDBCluster' can be reached by connecting to:
 
 ```
 
-mysqlrouter --bootstrap clusteradmin@10.10.30.42:3306 --directory /opt/mysql-router/data
-sudo chmod -R 0777 /opt/mysql-router/
+Видим, что конфиг роутера сгенерирован и готов к запуску. Предоставляет сервис доступа к БД на localhost:6446 и localhost:6447 для сессий чтение/запись и чтение соответственно.
 
+В логах роутера после запуска видим, что созданный кластер 'MyInnoDBCluster' определился и перечислены три его ноды с указанием режима - RW или RO.
 
 ```bash
 2026-03-25 17:57:31 routing INFO [79e0deffd6c0] [routing:bootstrap_ro] started: routing strategy = round-robin-with-fallback
@@ -99,8 +365,7 @@ sudo chmod -R 0777 /opt/mysql-router/
 2026-03-25 17:57:31 metadata_cache INFO [79e1207fd6c0]     cluster-node-db3:3306 / 33060 - mode=RO
 ```
 
-define('DB_HOST', 'localhost:6446');
-
+Далее изменим настройки WordPress для обращения локальному адресу, предоставляемым ротуером для доступа к базе:
 
 ```bash
 <?php
@@ -116,8 +381,15 @@ define('DB_HOST', '127.0.0.1:6446');
 define('WP_HOME', 'http://lab04.dev.net');
 define('WP_SITEURL', 'http://lab04.dev.net');
 
-
 ```
+
+Проверям работу и убеждаемся, что веб-сервис работает:
+
+![](/Lab05_InnoDB_Cluster/pics/Lab05_page1.png)
+
+Далее имитируем выход из строя одной ноды кластера. Погасим первую ноду, которая выполняет роль мастера и находится в режиме RW.
+
+Смотрим на состояние кластера на 2-ой ноде: 
 
 ```bash
  MySQL  cluster-node-db2:3306 ssl  Py > cluster.status()
@@ -165,6 +437,14 @@ define('WP_SITEURL', 'http://lab04.dev.net');
     "groupInformationSourceMember": "cluster-node-db3:3306"
 ```
 
+Видим, что первая-нода стала для кластера недоступной и роль мастера перешла к 3-ей ноде, и она также перешла в режим RW. Т.е. теперь запросы на запись будет принимать она. Сам кластер находится в рабочем но теперь уже не в отказоустойчивом состоянии - выход из строя еще одной ноды его остановит. 
+
+Проверим, что веб сервис продолжает работать без сбоев:
+
+![](/Lab05_InnoDB_Cluster/pics/Lab05_after_db1_failure.png)
+
+После включения первой ноды обратно она встает автоматически в кластер, но уже в роли  "SECONDARY", а сам кластер переходит в свое нормальное отказоустойчивое состояние.
+
 ```bash
 MySQL  cluster-node-db2:3306 ssl  Py > cluster.status()
 {
@@ -211,5 +491,9 @@ MySQL  cluster-node-db2:3306 ssl  Py > cluster.status()
     }, 
     "groupInformationSourceMember": "cluster-node-db3:3306"
 }
-
 ```
+
+
+Выводы: 
+
+В данной работе была рассмотрена работа отказоустойчивого кластера базы данных MySQL на основе InnoDB кластера и его последующая интеграция в веб-проект. Была выполнена автоматизированная настройка самого кластера. Далее выполнена его интеграция в существующий веб-проект с использованием MySQL роутера и проверен сценарий сбоя одной ноды кластера. 
