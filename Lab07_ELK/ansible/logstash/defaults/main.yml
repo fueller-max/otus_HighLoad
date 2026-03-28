@@ -1,0 +1,10 @@
+#SPDX-License-Identifier: MIT-0
+---
+# defaults file for logstash
+es_version: "8"
+es_yandex_mirror: "https://mirror.yandex.ru/mirrors/elastic/{{ es_version }}/"
+
+
+input_listen_port: "5044"
+
+es_pass: "MuY-kUBfs2aj27A2EP7q"

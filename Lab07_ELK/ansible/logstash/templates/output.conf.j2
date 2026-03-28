@@ -1,0 +1,9 @@
+output {
+        elasticsearch {
+            hosts => ["https://{{ hostvars[groups.es[0]]['cluster_net_addr']}}:9200","https://{{ hostvars[groups.es[1]]['cluster_net_addr']}}:9200", "https://{{ hostvars[groups.es[1]]['cluster_net_addr']}}:9200"]
+            index => "%{[host][name]}-%{+YYYY.MM}"
+            user => "elastic"
+            password => "{{ es_pass }}"
+            cacert => "/etc/logstash/certs/http_ca.crt"
+        }
+}

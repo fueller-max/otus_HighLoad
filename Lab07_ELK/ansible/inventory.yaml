@@ -1,0 +1,30 @@
+all:
+  children:
+     es:
+      hosts:
+        lab07-es-node1:
+          ansible_host: 192.168.70.61
+          cluster_net_addr: 10.10.50.51
+        lab07-es-node2:
+          ansible_host: 192.168.70.62
+          cluster_net_addr: 10.10.50.52    
+        lab07-es-node3:
+          ansible_host: 192.168.70.63
+          cluster_net_addr: 10.10.50.53
+
+     logstash:
+       hosts:
+        lab07-node-logstash:
+          ansible_host:  192.168.70.65
+          cluster_net_addr: 10.10.50.55   
+      
+     kibana:
+       hosts:
+         lab07-node-kibana:
+           ansible_host:   192.168.70.66
+           cluster_net_addr: 10.10.50.56
+         
+  vars:
+      ansible_user: deploy
+      ansible_connection: ssh 
+      ansible_python_interpreter : /usr/bin/python3.12   

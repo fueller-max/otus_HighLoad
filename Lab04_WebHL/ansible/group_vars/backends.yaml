@@ -1,0 +1,5 @@
+filebeat_logset:
+   - name: syslog
+     log_file_path: "/var/log/syslog"
+     type: "syslog"
+logstash_host: "192.168.70.65:5044"

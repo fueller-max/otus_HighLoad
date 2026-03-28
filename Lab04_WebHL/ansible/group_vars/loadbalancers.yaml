@@ -1,0 +1,12 @@
+ ## Filebeat - Logger
+filebeat_logset:
+   - name: access
+     log_file_path: "/var/log/angie/host.access.log"
+     type: "angie_access"
+   - name: error
+     log_file_path: "/var/log/angie/error.log"
+     type: "angie_error"
+
+logstash_host: "192.168.70.65:5044"
+
+  #####################

@@ -1,0 +1,5 @@
+#SPDX-License-Identifier: MIT-0
+---
+# defaults file for kibana
+es_version: "8"
+es_yandex_mirror: "https://mirror.yandex.ru/mirrors/elastic/{{ es_version }}/"

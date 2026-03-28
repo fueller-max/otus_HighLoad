@@ -1,0 +1,17 @@
+# - name: Install & Provision Elastic Search
+#   hosts: es
+#   become: true
+#   roles:
+#         - role: elastic-search 
+
+# - name: Install & Pre-Provision Kibana
+#   hosts: kibana
+#   become: true
+#   roles:
+#         - role: kibana        
+
+- name: Install & Provision Logstash
+  hosts: logstash
+  become: true
+  roles:
+        - role: logstash                

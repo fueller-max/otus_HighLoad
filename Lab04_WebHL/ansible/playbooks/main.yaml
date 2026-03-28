@@ -1,74 +1,74 @@
 
 ## ---------Provision Distributed File Storage ----------------
 
-# - name: Manage iSCSI target node
-#   hosts: fileservers
-#   become: true
-#   roles:
-#        - role: iscsi-target
-#   tags:
-#     - deploy-iscsi-target
-#     - never     
+- name: Manage iSCSI target node
+  hosts: fileservers
+  become: true
+  roles:
+       - role: iscsi-target
+  tags:
+    - deploy-iscsi-target
+    - never     
 
-# - name: Manage iSCSI initiator nodes 
-#   hosts: backends
-#   become: true
-#   gather_facts: true
-#   vars:
-#         # 1. Define the iSCSI Initiator Name (IQN)
-#         # This will update /etc/iscsi/initiatorname.iscsi
-#         # host_vars -> host
-#         open_iscsi_initiator_name: "{{ iscsi_initiator_name }}"
-#         open_iscsi_authentication: false
-#         open_iscsi_automatic_startup: true
+- name: Manage iSCSI initiator nodes 
+  hosts: backends
+  become: true
+  gather_facts: true
+  vars:
+        # 1. Define the iSCSI Initiator Name (IQN)
+        # This will update /etc/iscsi/initiatorname.iscsi
+        # host_vars -> host
+        open_iscsi_initiator_name: "{{ iscsi_initiator_name }}"
+        open_iscsi_authentication: false
+        open_iscsi_automatic_startup: true
 
-#         # 2. Specify the iSCSI target details for automatic connection
-#         # group_vars
-#         open_iscsi_targets:
-#           - name: 'target1'
-#             discover: true
-#             auto_portal_startup: true
-#             auto_node_startup: true
-#             target: "{{ target_iqn }}"
-#             portal: "{{ target_portal }}"
-#             login: true
+        # 2. Specify the iSCSI target details for automatic connection
+        # group_vars
+        open_iscsi_targets:
+          - name: 'target1'
+            discover: true
+            auto_portal_startup: true
+            auto_node_startup: true
+            target: "{{ target_iqn }}"
+            portal: "{{ target_portal }}"
+            login: true
        
-#   roles:
-#         - role: ricsanfre.iscsi_initiator
-#   tags:
-#     - deploy-iscsi-initiator
-#     - never
+  roles:
+        - role: ricsanfre.iscsi_initiator
+  tags:
+    - deploy-iscsi-initiator
+    - never
 
-# - name: Manage DNS hosts for iSCSI clients (for Corosync and GFS2)
-#   hosts: backends
-#   become: true
-#   roles:
-#        - dns-hosts     
-#   tags:
-#     - deploy-dns
-#     - never
+- name: Manage DNS hosts for iSCSI clients (for Corosync and GFS2)
+  hosts: backends
+  become: true
+  roles:
+       - dns-hosts     
+  tags:
+    - deploy-dns
+    - never
 
-# - name: Manage neccessary package infrastructure(GFS2, Corosync, DLM) for iSCSI initiators 
-#   hosts: backends
-#   become: true
-#   roles:
-#        - gfs2-infra 
-#   tags:
-#     - deploy-gfs2-infra
-#     - never     
+- name: Manage neccessary package infrastructure(GFS2, Corosync, DLM) for iSCSI initiators 
+  hosts: backends
+  become: true
+  roles:
+       - gfs2-infra 
+  tags:
+    - deploy-gfs2-infra
+    - never     
 
 ##-----------------------------------------------------------------------------
 
 ##  ------Provision DataBase --------------------------------------------------
 
-# - name: Provision database machine
-#   hosts: databases
-#   become: true
-#   roles:
-#         - role: mysql-wordpress
-#   tags:
-#     - deploy-single-node-mysql
-#     - never 
+- name: Provision database machine
+  hosts: databases
+  become: true
+  roles:
+        - role: mysql-wordpress
+  tags:
+    - deploy-single-node-mysql
+    - never 
 ##-----------------------------------------------------------------------------
 
 
@@ -78,44 +78,41 @@
   hosts: backends
   become: true
   roles:
-        # - role: wordpress 
-        - role: mysql-router 
+        #  - role: wordpress 
+        #  - role: mysql-router 
+         - role: filebeat-log 
   
 ##-----------------------------------------------------------------------------
 
 ## -------Provision Load Balancers --------------------------------------------
 
-# - name: Provision loadbalancers machines
-#   hosts: loadbalancers
-#   become: true
-#   roles:
-#         - role: angie-lb-ha  
-#   tags:
-#     - deploy-loadbalancers
-#     - never 
+- name: Provision loadbalancers machines
+  hosts: loadbalancers
+  become: true
+  roles:
+        - role: angie-lb-ha 
+        - role: filebeat-log  
 ##-----------------------------------------------------------------------------
 
 
 ## ------------Provision Monitoring service ----------------------------------
-# - name: Provision Monitoring machine (Prometheus&Grafana)
-#   hosts: lab04_monitoring
-#   become: true
-#   roles:
-#           - monitoring
-#   tags:
-#     - deploy-monitoring
-#     - never 
+- name: Provision Monitoring machine (Prometheus&Grafana)
+  hosts: lab04_monitoring
+  become: true
+  roles:
+          - monitoring
+  tags:
+    - deploy-monitoring
+    - never 
 
-# - name: Install Node Exporter on all hosts
-#   hosts: all
-#   become: true
-#   roles:
-#           - node-exporter
-#   tags:        
-#      - deploy-monitoring
-#      - never
-
-  
-                 
+- name: Install Node Exporter on all hosts
+  hosts: all
+  become: true
+  roles:
+          - node-exporter
+  tags:        
+     - deploy-monitoring
+     - never
+            
 ##----------------------------------------------------------------------------
 

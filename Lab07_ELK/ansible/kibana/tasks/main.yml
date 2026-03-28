@@ -1,0 +1,14 @@
+#SPDX-License-Identifier: MIT-0
+---
+# tasks file for kibana
+- name: Install Kibana
+  tags: install
+  ansible.builtin.include_tasks: 
+    file: install.yaml
+  when: ansible_facts["os_family"] == "Debian"
+
+- name: Provision Kibana
+  tags: provision
+  ansible.builtin.include_tasks: 
+   file: provision.yaml
+  when: ansible_facts["os_family"] == "Debian"
