@@ -1,0 +1,31 @@
+all:
+  children:
+    postgres:
+      hosts:
+        lab06-pg-node1:
+          ansible_host: 192.168.70.72
+          cluster_net_addr: 10.10.70.72
+        lab06-pg-node2:
+          ansible_host: 192.168.70.73
+          cluster_net_addr: 10.10.70.73
+        lab06-pg-node3:
+          ansible_host: 192.168.70.74
+          cluster_net_addr: 10.10.70.74
+
+    balancers:
+      hosts:
+        lab06-ha-node1:
+          ansible_host: 192.168.70.70
+          vrrp_net_addr: 10.10.60.70
+          vrrp_role: "master"
+          cluster_net_addr: 10.10.70.70
+        lab06-ha-node2:
+          ansible_host: 192.168.70.71
+          vrrp_net_addr: 10.10.60.71
+          vrrp_role: "slave"
+          cluster_net_addr: 10.10.70.71
+
+  vars:
+    ansible_user: deploy
+    ansible_connection: ssh
+    ansible_python_interpreter: /usr/bin/python3.12
