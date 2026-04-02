@@ -1,0 +1,48 @@
+global_defs {
+    enable_script_security
+}
+
+vrrp_script chk_haproxy {
+    script "/etc/keepalived/check_haproxy.sh"
+    interval 2      
+    weight 2        
+    fall 2          
+    rise 2          
+}
+
+vrrp_instance ha_proxy {
+
+  {% if  vrrp_role == "master" %}
+    state MASTER
+  {% elif vrrp_role == "slave" %}
+    state BACKUP
+  {% endif %}
+    interface eth1   
+    virtual_router_id 254 
+  {% if vrrp_role == "master" %}
+    priority 100
+  {% elif vrrp_role == "slave" %}
+    priority 99
+  {% endif %}    
+    
+    advert_int 1 
+ 
+  {% if vrrp_role == "master" %}
+    unicast_src_ip {{ vrrp_net_addr }}
+    unicast_peer {
+        {{ hostvars[groups.balancers[1]]['vrrp_net_addr'] }}
+    }
+  {% elif vrrp_role == "slave"  %}
+    unicast_src_ip {{ vrrp_net_addr  }}
+    unicast_peer {
+        {{ hostvars[groups.balancers[0]]['vrrp_net_addr'] }}
+    }
+  {% endif %}
+    
+
+    virtual_ipaddress {
+        {{ vip }} dev eth0
+    } track_script {
+        chk_haproxy
+    }
+}

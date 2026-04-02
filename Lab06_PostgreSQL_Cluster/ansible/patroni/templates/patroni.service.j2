@@ -1,0 +1,15 @@
+[Unit]
+Description=Patroni high-availability PostgreSQL
+After=network.target
+Wants=network-online.target
+ 
+[Service]
+User=postgres
+Type=simple
+ExecStart=/usr/bin/patroni /etc/patroni/config.yml.in
+Restart=always
+RestartSec=5
+LimitNOFILE=1024
+ 
+[Install]
+WantedBy=multi-user.target

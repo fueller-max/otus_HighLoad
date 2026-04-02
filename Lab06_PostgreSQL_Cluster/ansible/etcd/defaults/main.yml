@@ -1,0 +1,9 @@
+#SPDX-License-Identifier: MIT-0
+---
+# defaults file for etcd
+etcd_release: "3.6.9"
+download_url: https://github.com/etcd-io/etcd/releases/download
+
+
+etcd_peer_port: "2380"
+etcd_client_port: "2379"

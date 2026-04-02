@@ -1,0 +1,4 @@
+#SPDX-License-Identifier: MIT-0
+---
+# vars file for patroni
+cluster_net: "10.10.70.0/24"

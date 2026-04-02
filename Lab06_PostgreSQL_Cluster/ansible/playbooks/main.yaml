@@ -1,0 +1,16 @@
+- name: Provision PG nodes
+  hosts: postgres
+  become: true
+  vars:
+     etcd_version: latest
+  roles:
+        - role: etcd
+        - role: postgresql
+        - role: patroni
+
+- name: Provision HA nodes
+  hosts: balancers
+  become: true
+  roles:
+       # - role: haproxy
+        - role: keepalived     

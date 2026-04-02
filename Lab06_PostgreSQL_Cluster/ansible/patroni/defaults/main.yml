@@ -1,0 +1,6 @@
+#SPDX-License-Identifier: MIT-0
+---
+# defaults file for patroni
+admin_password: new_secure_password1
+replicator_password: new_repl_password
+superuser_password: new_superuser_password

@@ -1,0 +1,7 @@
+# Для репликации
+{{ hostvars[groups.postgres[0]]['cluster_net_addr'] }}:5432:postgres:replicator:your_secure_password
+{{ hostvars[groups.postgres[1]]['cluster_net_addr'] }}:5432:postgres:replicator:your_secure_password
+{{ hostvars[groups.postgres[2]]['cluster_net_addr'] }}:5432:postgres:replicator:your_secure_password
+#{{ cluster_net_addr }}:5432:*:replicator:{{ replicator_password }}
+# Для суперпользователя
+{{ cluster_net_addr }}:5432:*:postgres:{{ superuser_password }}

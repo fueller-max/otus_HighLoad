@@ -1,0 +1,7 @@
+postgresql_major_version: "18"
+postgresql_port: "5432"
+
+vip: "192.168.70.20"
+
+ha_proxy_postgres_port_rw: "5000"
+ha_proxy_postgres_port_ro: "5001"

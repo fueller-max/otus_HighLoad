@@ -1,0 +1,8 @@
+#etcd:
+#  hosts: ["{{ hostvars[groups.postgres[0]]['cluster_net_addr']}}:2379", "{{ hostvars[groups.postgres[0]]['cluster_net_addr']}}:2379", "{{ hostvars[groups.postgres[0]]['cluster_net_addr']}}:2379"]
+
+#consul:
+#  host: 127.0.0.1:8500
+
+#zookeeper:
+#  hosts: 127.0.0.1:2181

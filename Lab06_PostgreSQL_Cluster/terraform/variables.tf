@@ -20,7 +20,7 @@ variable "proxmox_api_token_secret" {
 variable "storage_name" {
    type        = string
    description = "Proxmox storage name"
-   default     = "vmdata"
+   default     = "vmdata2"
 }
 
 

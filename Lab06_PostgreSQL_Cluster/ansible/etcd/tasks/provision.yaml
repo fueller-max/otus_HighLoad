@@ -1,0 +1,56 @@
+- name: Build etcd initial-cluster string using cluster_net_addr
+  ansible.builtin.set_fact:
+        etcd_cluster_string: >-
+         {%- set parts = [] -%}
+         {%- for host in groups['postgres'] -%}
+         {%- set _ = parts.append(host ~ '=http://' ~
+              hostvars[host]['cluster_net_addr'] ~ ':' ~ etcd_peer_port) -%}
+         {%- endfor -%}
+         {{ parts | join(',') }}
+  delegate_to: localhost
+  run_once: yes
+  tags: always
+
+- name: Debug the generated cluster string
+  ansible.builtin.debug:
+        var: etcd_cluster_string
+  delegate_to: localhost
+  run_once: yes
+  tags: always
+
+- name: Ensure the etcd group exists
+  ansible.builtin.group:
+        name: etcd
+        state: present
+
+- name: Ensure etcd user and group exist
+  ansible.builtin.user:
+        name: etcd
+        group: etcd
+        system: yes
+        shell: /usr/sbin/nologin
+        home: /var/lib/etcd
+
+- name: Create etcd data directory
+  ansible.builtin.file:
+        path: /var/lib/etcd
+        state: directory
+        owner: etcd
+        group: etcd
+        mode: '0700'
+
+- name: Render etcd systemd unit with dynamic cluster configuration
+  ansible.builtin.template:
+        src: etcd.service.j2
+        dest: /etc/systemd/system/etcd.service
+       
+- name: Force systemd to reread configs
+  ansible.builtin.systemd_service:
+    daemon_reload: true   
+
+- name: Enable and start etcd service
+  ansible.builtin.systemd:
+        name: etcd
+        state: started
+        enabled: yes
+  register: etcd_service_status

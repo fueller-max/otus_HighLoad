@@ -1,0 +1,47 @@
+- name: Get latest etcd release version
+  ansible.builtin.uri:
+    url: https://api.github.com/repos/etcd-io/etcd/releases/latest
+    return_content: yes
+    status_code: 200
+  register: etcd_api_response
+  when: etcd_version == "latest"
+  failed_when: etcd_api_response.status != 200
+  tags: always
+
+- name: Parse latest etcd version from API response
+  ansible.builtin.set_fact:
+    etcd_release: "{{ (etcd_api_response.json.tag_name | regex_replace('^v', '')) }}"
+  when:
+    - etcd_version == "latest"
+    - etcd_api_response is success  
+  tags: always
+
+- name: Debug etcd version
+  ansible.builtin.debug:
+    var: etcd_release
+  when: etcd_version == "latest"    
+  tags: always
+
+- name: Download && unpack && move to bin folder Etcd
+  ansible.builtin.shell: |
+        curl -L "{{ download_url }}"/v"{{ etcd_release }}"/etcd-v"{{ etcd_release }}"-linux-amd64.tar.gz -o /tmp/etcd-v"{{ etcd_release }}"-linux-amd64.tar.gz
+        tar -xzvf /tmp/etcd-v"{{ etcd_release }}"-linux-amd64.tar.gz -C /tmp 
+        mv /tmp/etcd-v"{{ etcd_release }}"-linux-amd64/etcd* /usr/local/bin/
+  tags: always
+
+- name: Get installed etcd version
+  ansible.builtin.command: etcd --version
+  register: etcd_version_output
+  changed_when: false
+  tags: always
+
+- name: Extract version number
+  ansible.builtin.set_fact:
+    installed_etcd_version: "{{ etcd_version_output.stdout.split('\n')[0].split()[2] }}"
+  tags: always
+
+- name: Compare versions
+  ansible.builtin.fail:
+    msg: "Installed etcd version {{ installed_etcd_version }} does not match required {{ etcd_release }}"
+  when: installed_etcd_version != etcd_release
+  tags: always

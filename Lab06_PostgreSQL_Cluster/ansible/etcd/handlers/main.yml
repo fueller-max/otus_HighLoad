@@ -1,0 +1,7 @@
+#SPDX-License-Identifier: MIT-0
+---
+# handlers file for etcd
+- name: restart etcd
+  ansible.builtin.systemd:
+        name: etcd
+        state: restarted

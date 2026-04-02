@@ -1,0 +1,27 @@
+#!/!/bin/bash
+
+# check if haproxy process is running
+if ! pgrep -x "haproxy" > /dev/null; then
+    echo "HAProxy process not running"
+    exit 1
+fi
+
+# Параметры для проверки
+HA_IP="{{ ansible_host }}"
+HA_PORT="{{ ha_proxy_postgres_port_rw }}"
+TIMEOUT=5
+
+# Пытаемся установить TCP‑соединение с HAProxy на порту PostgreSQL
+if nc -z -w $TIMEOUT "$HA_IP" "$HA_PORT" > /dev/null 2>&1; then
+    # Если соединение установлено, отправляем простой запрос для проверки работоспособности
+    # Запрос "Q\0SELECT 1;" — простой валидный PSQL‑запрос
+    if echo -e "Q\0SELECT 1;\0" | nc -w $TIMEOUT "$HA_IP" "$HA_PORT" | grep -q "1"; then
+        exit 0
+    else
+        echo "HAProxy is reachable but not responding to PostgreSQL queries"
+        exit 1
+    fi
+else
+    echo "Cannot connect to HAProxy on $HA_IP:$HA_PORT"
+    exit 1
+fi

@@ -61,7 +61,7 @@ resource "proxmox_vm_qemu" "lab06-ha-node1" {
     
     # Lan3: internal network (pg cluster net)
     network {
-        id = 1
+        id = 2
         model = "virtio"
         bridge = "vmbr7"
     }
@@ -76,6 +76,6 @@ resource "proxmox_vm_qemu" "lab06-ha-node1" {
        ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEwOGqPyDBruydkg1DPItwaBBwo5/5gAaBYeshgNFmlS maksim@maksim-asus-tuf
      EOF
      ipconfig1 = "ip=10.10.60.70/24"
-     ipconfig1 = "ip=10.10.70.70/24"
+     ipconfig2 = "ip=10.10.70.70/24"
 }
 

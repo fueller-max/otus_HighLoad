@@ -1,0 +1,108 @@
+# --- REQUIRED CORE ---
+scope: patroni_cluster
+name: {{ inventory_hostname }}
+namespace: "/postgresql-common/" 
+
+# --- REST API ---
+restapi:
+  listen: 0.0.0.0:8008
+  connect_address: {{ cluster_net_addr }}:8008 
+  verify_client: optional
+#  cafile: /opt/patroni/.tls/ca.crt
+#  certfile: /opt/patroni/.tls/node01.crt # Не забыть изменить сертификаты на 2 ноде
+#  keyfile: /opt/patroni/.tls/node01.key
+
+#ctl:
+#  cacert: /opt/patroni/.tls/ca.crt # Не забыть изменить сертификаты на 2 ноде
+#  certfile: /opt/patroni/.tls/node01.crt
+#  keyfile: /opt/patroni/.tls/node01.key
+
+# --- DCS (e.g., etcd or consul) ---
+etcd3:
+  hosts: ["{{ hostvars[groups.postgres[0]]['cluster_net_addr']}}:2379", "{{ hostvars[groups.postgres[0]]['cluster_net_addr']}}:2379", "{{ hostvars[groups.postgres[0]]['cluster_net_addr']}}:2379"]
+  protocol: http
+  scope: postgresql-common/patroni_cluster
+
+## -- Bootstrap -------------  
+{% set pg_nodes = groups['postgres'] %}
+{% set is_first_node = inventory_hostname == pg_nodes[0] %}
+
+{% if is_first_node %}
+bootstrap:
+  dcs:
+    #failsafe_mode: true
+    ttl: 30
+    loop_wait: 10
+    retry_timeout: 10
+    maximum_lag_on_failover: 1048576
+    synchronous_mode: true
+    synchronous_mode_strict: true
+    synchronous_mode_count: 1
+    master_start_timeout: 30
+    slots:
+      prod_replica1:
+        type: physical
+  postgresql:
+    use_pg_rewind: true
+    use_slots: true
+    parameters:
+      shared_buffers: '512MB'
+      wal_level: 'replica'
+      wal_keep_size: '512MB'
+      max_connections: 100
+      effective_cache_size: '1GB'
+      maintenance_work_mem: '256MB'
+      max_wal_senders: 3
+      max_replication_slots: 10
+      checkpoint_completion_target: 0.7
+      log_timezone: 'Europe/Moscow'
+      timezone: 'Europe/Moscow'
+      lc_messages: 'C.UTF-8'
+      password_encryption: 'scram-sha-256'
+      superuser_reserved_connections: 3
+      synchronous_commit: 'on'
+      synchronous_standby_names: 'ANY 1 (...)'
+      hot_standby: 'on'
+      compute_query_id: 'on'
+  initdb:
+    - encoding: UTF8
+    - data-checksums
+    - username: postgres
+    - auth: scram-sha-256
+    - auth-host: scram-sha-256  # connect from host
+    - auth-local: peer  # local coonection via socket 
+{% endif %}
+
+# --- PostgreSQL Configuration ---      
+postgresql:
+  listen: '*'
+  connect_address: {{ cluster_net_addr }}:5432 
+  use_unix_socket: true
+  data_dir: /var/lib/postgresql/{{ postgresql_major_version }}
+  config_dir: /var/lib/postgresql/{{ postgresql_major_version }}/
+  bin_dir: /usr/lib/postgresql/{{ postgresql_major_version }}/bin
+  pgpass: /home/postgres/.pgpass_patroni
+  authentication:
+    replication:
+      username: replicator
+      password: {{ replicator_password }}
+    superuser:
+      username: postgres
+    rewind:
+      username: postgres
+  pg_hba:
+    - local all all peer
+    - host all all 127.0.0.1/32 scram-sha-256
+    - host all all {{cluster_net}} scram-sha-256
+    - host replication replicator 127.0.0.1/32 scram-sha-256
+    - host replication replicator ::1/128 scram-sha-256
+    - host replication replicator {{cluster_net}} scram-sha-256    
+  parameters:
+    unix_socket_directories: "/var/run/postgresql/"
+    logging_collector: 'on'
+    log_directory: '/var/log/patroni'
+    log_filename: 'postgresql-{{ postgresql_major_version }}.log'
+  create_replica_methods: ["basebackup"]
+  basebackup:
+    max-rate: 100M
+    checkpoint: fast

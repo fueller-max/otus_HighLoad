@@ -1,0 +1,9 @@
+- name: Render config
+  ansible.builtin.template:
+      src:  templates/haproxy.cfg.j2      
+      dest: /etc/haproxy/haproxy.cfg
+      owner: root                           
+      group: root                           
+      mode: '0644'
+  notify: Restart haproxy    
+  tags: [always]  

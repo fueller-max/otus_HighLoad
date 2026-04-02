@@ -1,0 +1,12 @@
+- name: Update package cache
+  apt:
+    update_cache: yes
+  tags: always
+
+- name: Install Patroni and dependencies
+  ansible.builtin.apt:
+      name:
+        - patroni
+        - python3-psycopg2
+      state: present    
+  tags: always
