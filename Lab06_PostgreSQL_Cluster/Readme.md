@@ -28,12 +28,14 @@ http://10.10.70.74:2379 is healthy: successfully committed proposal: took = 2.09
 
 ```
 
-deploy@lab06-pg-node2:~$ etcdctl endpoint status -w table
-+----------------+------------------+---------+-----------------+---------+--------+-----------------------+--------+-----------+------------+-----------+------------+--------------------+--------+--------------------------+-------------------+
-|    ENDPOINT    |        ID        | VERSION | STORAGE VERSION | DB SIZE | IN USE | PERCENTAGE NOT IN USE | QUOTA  | IS LEADER | IS LEARNER | RAFT TERM | RAFT INDEX | RAFT APPLIED INDEX | ERRORS | DOWNGRADE TARGET VERSION | DOWNGRADE ENABLED |
-+----------------+------------------+---------+-----------------+---------+--------+-----------------------+--------+-----------+------------+-----------+------------+--------------------+--------+--------------------------+-------------------+
-| 127.0.0.1:2379 | e070309dc3b2d3e7 |   3.6.9 |           3.6.0 |   20 kB |  16 kB |                   20% | 2.1 GB |     false |      false |         2 |         11 |                 11 |        |                          |             false |
-+----------------+------------------+---------+-----------------+---------+--------+-----------------------+--------+-----------+------------+-----------+------------+--------------------+--------+--------------------------+-------------------+
+```bash
+deploy@lab06-pg-node2:~$ etcdctl member list
+70f0c6f79d03049d, started, lab06-pg-node3, http://10.10.70.74:2380, http://10.10.70.74:2379, false
+8cd541aa2731c522, started, lab06-pg-node1, http://10.10.70.72:2380, http://10.10.70.72:2379, false
+e070309dc3b2d3e7, started, lab06-pg-node2, http://10.10.70.73:2380, http://10.10.70.73:2379, false
+
+```
+
 
 ```bash
 deploy@lab06-pg-node1:~$ etcdctl --endpoints=http://10.10.70.72:2379 get "" --prefix --keys-only
@@ -111,3 +113,135 @@ deploy@lab06-pg-node2:~$ sudo systemctl status patroni
 Apr 02 11:11:54 lab06-pg-node2 patroni[49532]: 2026-04-02 11:11:54,330 INFO: no action. I am (lab06-pg-node2), the leader with the lock
 
 ```
+
+```bash
+deploy@lab06-pg-node2:~$ sudo patronictl -c /etc/patroni/config.yml.in list
++ Cluster: patroni_cluster (7624113203280740141) ---------+----+-------------+-----+------------+-----+
+| Member         | Host        | Role         | State     | TL | Receive LSN | Lag | Replay LSN | Lag |
++----------------+-------------+--------------+-----------+----+-------------+-----+------------+-----+
+| lab06-pg-node1 | 10.10.70.72 | Replica      | streaming |  2 |   0/6478FB8 |   0 |  0/6478FB8 |   0 |
+| lab06-pg-node2 | 10.10.70.73 | Leader       | running   |  2 |             |     |            |     |
+| lab06-pg-node3 | 10.10.70.74 | Sync Standby | streaming |  2 |   0/6478FB8 |   0 |  0/6478FB8 |   0 |
++----------------+-------------+--------------+-----------+----+-------------+-----+------------+-----+
+
+```
+
+
+switchover
+
+```bash
+deploy@lab06-pg-node2:~$ sudo patronictl -c /etc/patroni/config.yml.in switchover
+Current cluster topology
++ Cluster: patroni_cluster (7624113203280740141) ---------+----+-------------+-----+------------+-----+
+| Member         | Host        | Role         | State     | TL | Receive LSN | Lag | Replay LSN | Lag |
++----------------+-------------+--------------+-----------+----+-------------+-----+------------+-----+
+| lab06-pg-node1 | 10.10.70.72 | Replica      | streaming |  2 |   0/6478FB8 |   0 |  0/6478FB8 |   0 |
+| lab06-pg-node2 | 10.10.70.73 | Leader       | running   |  2 |             |     |            |     |
+| lab06-pg-node3 | 10.10.70.74 | Sync Standby | streaming |  2 |   0/6478FB8 |   0 |  0/6478FB8 |   0 |
++----------------+-------------+--------------+-----------+----+-------------+-----+------------+-----+
+Primary [lab06-pg-node2]: 
+Candidate ['lab06-pg-node1', 'lab06-pg-node3'] []: lab06-pg-node3
+When should the switchover take place (e.g. 2026-04-03T07:04 )  [now]: now
+Are you sure you want to switchover cluster patroni_cluster, demoting current leader lab06-pg-node2? [y/N]: y
+2026-04-03 06:04:19.56026 Successfully switched over to "lab06-pg-node3"
++ Cluster: patroni_cluster (7624113203280740141) --+----+-------------+-----+------------+-----+
+| Member         | Host        | Role    | State   | TL | Receive LSN | Lag | Replay LSN | Lag |
++----------------+-------------+---------+---------+----+-------------+-----+------------+-----+
+| lab06-pg-node1 | 10.10.70.72 | Replica | running |  2 |   0/6479138 |   0 |  0/6479138 |   0 |
+| lab06-pg-node2 | 10.10.70.73 | Replica | stopped |    |     unknown |     |    unknown |     |
+| lab06-pg-node3 | 10.10.70.74 | Leader  | running |  2 |             |     |            |     |
++----------------+-------------+---------+---------+----+-------------+-----+------------+-----+
+
+```
+
+```bash
+deploy@lab06-pg-node2:~$ sudo patronictl -c /etc/patroni/config.yml.in list
++ Cluster: patroni_cluster (7624113203280740141) ---------+----+-------------+-----+------------+-----+
+| Member         | Host        | Role         | State     | TL | Receive LSN | Lag | Replay LSN | Lag |
++----------------+-------------+--------------+-----------+----+-------------+-----+------------+-----+
+| lab06-pg-node1 | 10.10.70.72 | Sync Standby | streaming |  3 |   0/64793D0 |   0 |  0/64793D0 |   0 |
+| lab06-pg-node2 | 10.10.70.73 | Replica      | streaming |  3 |   0/64793D0 |   0 |  0/64793D0 |   0 |
+| lab06-pg-node3 | 10.10.70.74 | Leader       | running   |  3 |             |     |            |     |
++----------------+-------------+--------------+-----------+----+-------------+-----+------------+-----+
+
+```
+
+
+```bash
+deploy@lab06-pg-node3:~$ sudo systemctl stop patroni
+
+deploy@lab06-pg-node2:~$ sudo patronictl -c /etc/patroni/config.yml.in list
++ Cluster: patroni_cluster (7624113203280740141) ----+----+-------------+-----+------------+-----+
+| Member         | Host        | Role    | State     | TL | Receive LSN | Lag | Replay LSN | Lag |
++----------------+-------------+---------+-----------+----+-------------+-----+------------+-----+
+| lab06-pg-node1 | 10.10.70.72 | Leader  | running   |  3 |             |     |            |     |
+| lab06-pg-node2 | 10.10.70.73 | Replica | streaming |  4 |   0/647FAB0 |   0 |  0/647FAB0 |   0 |
+| lab06-pg-node3 | 10.10.70.74 | Replica | stopped   |    |     unknown |     |    unknown |     |
++----------------+-------------+---------+-----------+----+-------------+-----+------------+-----+
+```
+
+```bash
+eploy@lab06-ha-node1:~$ sudo systemctl status haproxy
+● haproxy.service - HAProxy Load Balancer
+     Loaded: loaded (/usr/lib/systemd/system/haproxy.service; enabled; preset: enabled)
+     Active: active (running) since Thu 2026-04-02 13:38:37 UTC; 16h ago
+       Docs: man:haproxy(1)
+             file:/usr/share/doc/haproxy/configuration.txt.gz
+   Main PID: 25595 (haproxy)
+     Status: "Ready."
+      Tasks: 3 (limit: 2315)
+     Memory: 7.5M (peak: 8.0M)
+        CPU: 16.338s
+     CGroup: /system.slice/haproxy.service
+             ├─25595 /usr/sbin/haproxy -Ws -f /etc/haproxy/haproxy.cfg -p /run/haproxy.pid -S /run/haproxy-master.sock
+             └─25597 /usr/sbin/haproxy -Ws -f /etc/haproxy/haproxy.cfg -p /run/haproxy.pid -S /run/haproxy-master.sock
+
+Apr 02 13:38:38 lab06-ha-node1 haproxy[25597]: [WARNING]  (25597) : Server primary/node3 is DOWN, reason: Layer7 wrong status, code: 503, info: "Service Unavailable">
+Apr 02 13:38:39 lab06-ha-node1 haproxy[25597]: [WARNING]  (25597) : Server standbys/node2 is DOWN, reason: Layer7 wrong status, code: 503, info: "Service Unavailable>
+Apr 03 06:04:24 lab06-ha-node1 haproxy[25597]: [WARNING]  (25597) : Server primary/node3 is UP, reason: Layer7 check passed, code: 200, check duration: 0ms. 2 active>
+Apr 03 06:04:24 lab06-ha-node1 haproxy[25597]: [WARNING]  (25597) : Server primary/node2 is DOWN, reason: Layer7 wrong status, code: 503, info: "Service Unavailable">
+Apr 03 06:04:27 lab06-ha-node1 haproxy[25597]: [WARNING]  (25597) : Server standbys/node3 is DOWN, reason: Layer7 wrong status, code: 503, info: "Service Unavailable>
+Apr 03 06:04:27 lab06-ha-node1 haproxy[25597]: [WARNING]  (25597) : Server standbys/node2 is UP, reason: Layer7 check passed, code: 200, check duration: 7ms. 2 activ>
+Apr 03 06:11:55 lab06-ha-node1 haproxy[25597]: [WARNING]  (25597) : Server primary/node1 is UP, reason: Layer7 check passed, code: 200, check duration: 1ms. 2 active>
+Apr 03 06:11:58 lab06-ha-node1 haproxy[25597]: [WARNING]  (25597) : Server primary/node3 is DOWN, reason: Layer4 connection problem, info: "Connection refused", chec>
+Apr 03 06:11:58 lab06-ha-node1 haproxy[25597]: [WARNING]  (25597) : Server standbys/node1 is DOWN, reason: Layer7 wrong status, code: 503, info: "Service Unavailable>
+Apr 03 06:15:13 lab06-ha-node1 haproxy[25597]: [WARNING]  (25597) : Server standbys/node3 is UP, reason: Layer7 check passed, code: 200, check duration: 13ms. 2 acti>
+```
+
+
+
+Haproxy
+
+```bash
+deploy@lab06-ha-node1:~$ sudo systemctl stop haproxy
+
+deploy@lab06-ha-node1:~$ sudo systemctl status keepalived
+● keepalived.service - Keepalive Daemon (LVS and VRRP)
+     Loaded: loaded (/usr/lib/systemd/system/keepalived.service; enabled; preset: enabled)
+     Active: active (running) since Fri 2026-04-03 06:38:37 UTC; 36s ago
+
+
+Apr 03 06:38:37 lab06-ha-node1 Keepalived[36972]: Starting VRRP child process, pid=36973
+Apr 03 06:38:37 lab06-ha-node1 Keepalived_vrrp[36973]: (/etc/keepalived/keepalived.conf: Line 6) Unterminated quote 'script "killall -0 haproxy""'
+Apr 03 06:38:37 lab06-ha-node1 Keepalived_vrrp[36973]: (/etc/keepalived/keepalived.conf: Line 6) Unmatched quote: 'script "killall -0 haproxy""'
+Apr 03 06:38:37 lab06-ha-node1 Keepalived_vrrp[36973]: WARNING - script `killall` resolved by path search to `/usr/bin/killall`. Please specify full path.
+Apr 03 06:38:37 lab06-ha-node1 Keepalived_vrrp[36973]: (ha_proxy) Entering BACKUP STATE (init)
+Apr 03 06:38:37 lab06-ha-node1 Keepalived[36972]: Startup complete
+Apr 03 06:38:37 lab06-ha-node1 systemd[1]: Started keepalived.service - Keepalive Daemon (LVS and VRRP).
+Apr 03 06:38:37 lab06-ha-node1 Keepalived_vrrp[36973]: VRRP_Script(chk_haproxy) succeeded
+Apr 03 06:38:37 lab06-ha-node1 Keepalived_vrrp[36973]: (ha_proxy) Changing effective priority from 100 to 102
+Apr 03 06:38:41 lab06-ha-node1 Keepalived_vrrp[36973]: (ha_proxy) Entering MASTER STATE
+
+deploy@lab06-ha-node2:~$ ip a
+
+2: eth0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc fq_codel state UP group default qlen 1000
+    link/ether bc:24:11:2f:c9:94 brd ff:ff:ff:ff:ff:ff
+    altname enp0s18
+    inet 192.168.70.71/24 brd 192.168.70.255 scope global eth0
+       valid_lft forever preferred_lft forever
+    inet 192.168.70.20/32 scope global eth0
+       valid_lft forever preferred_lft forever
+    inet6 fe80::be24:11ff:fe2f:c994/64 scope link 
+       valid_lft forever preferred_lft forever
+```
+

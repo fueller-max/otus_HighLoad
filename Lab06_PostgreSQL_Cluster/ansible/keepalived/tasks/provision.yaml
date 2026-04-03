@@ -1,6 +1,15 @@
 - name: Enable kernel interface binding
   ansible.builtin.shell: |
       sysctl -w net.ipv4.ip_nonlocal_bind=1
+
+- name: Render checking script
+  ansible.builtin.template:
+      src:  templates/check_haproxy.sh.j2      
+      dest: /etc/keepalived/check_haproxy.sh  
+      owner: root                           
+      group: root                           
+      mode: '0755'  
+  tags: [always]        
  
 - name: Render config
   ansible.builtin.template:

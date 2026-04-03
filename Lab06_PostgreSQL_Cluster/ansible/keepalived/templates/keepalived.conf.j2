@@ -3,11 +3,12 @@ global_defs {
 }
 
 vrrp_script chk_haproxy {
-    script "/etc/keepalived/check_haproxy.sh"
+    script "killall -0 haproxy""
     interval 2      
     weight 2        
     fall 2          
-    rise 2          
+    rise 2 
+    user root         
 }
 
 vrrp_instance ha_proxy {
