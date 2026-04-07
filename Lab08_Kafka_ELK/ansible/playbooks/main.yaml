@@ -1,0 +1,5 @@
+- name: Install & Provision Elastic Search
+  hosts: es
+  become: true
+  roles:
+        - role: elastic-search 

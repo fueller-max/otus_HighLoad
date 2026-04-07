@@ -1,0 +1,16 @@
+#SPDX-License-Identifier: MIT-0
+---
+# tasks file for elastic-search
+
+- name: Install Elastic Search
+  tags: install
+  ansible.builtin.include_tasks: 
+    file: install.yaml
+  when: ansible_facts["os_family"] == "Debian"
+
+- name: Provision Elastic Search
+  tags: provision
+  ansible.builtin.include_tasks: 
+   file: provision.yaml
+  when: ansible_facts["os_family"] == "Debian"
+

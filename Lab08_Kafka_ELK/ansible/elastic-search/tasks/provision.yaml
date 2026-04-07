@@ -1,0 +1,138 @@
+- name: Replace the whole content of /etc/hosts
+  ansible.builtin.template:
+      src:  templates/hosts.j2          
+      dest: /etc/hosts      
+      owner: root                           
+      group: root                           
+      mode: '0644'
+  tags: [always]
+
+- name: Ensure that file hosts not get overwritten by cloud init anymore
+  ansible.builtin.lineinfile:
+    path: /etc/cloud/cloud.cfg
+    regexp: '.*?update_etc_hosts' 
+    line: '# - update_etc_hosts' # The desired line
+    backup: true # Create a backup of the original file  
+  tags: [always]
+
+- name: Render JVM options for es
+  ansible.builtin.template:
+      src:  templates/jvm.options.j2       
+      dest: /etc/elasticsearch/jvm.options  
+      owner: root                           
+      group: elasticsearch                           
+      mode: '0644'      
+  tags: [always] 
+
+- name: Render config for es for initial start. First node only
+  vars:
+      initial_master_nodes: true
+  ansible.builtin.template:
+      src:  templates/elasticsearch.yml.j2       
+      dest: /etc/elasticsearch/elasticsearch.yml  
+      owner: root                           
+      group: elasticsearch                           
+      mode: '0644'      
+  tags: [always]  
+  run_once: true    
+  delegate_to:  "{{ groups.es | first }}" 
+
+- name: Start and enable es. First node only
+  ansible.builtin.systemd:
+    name: elasticsearch
+    state: started
+    enabled: yes 
+  run_once: true    
+  delegate_to:  "{{ groups.es | first }}" 
+  tags: [always]
+
+- name: Render config for es for normal operation. All nodes 
+  vars:
+      initial_master_nodes: false
+  ansible.builtin.template:
+      src:  templates/elasticsearch.yml.j2       
+      dest: /etc/elasticsearch/elasticsearch.yml  
+      owner: root                           
+      group: elasticsearch                           
+      mode: '0644'      
+  tags: [always]  
+
+- name: Reset elastic password 
+  ansible.builtin.shell:  '/usr/share/elasticsearch/bin/elasticsearch-reset-password -u elastic -b -s -a'
+  register: elastic_pass
+  run_once: true    
+  delegate_to:  "{{ groups.es | first }}"
+  tags: [always] 
+
+- name: Print elastic password 
+  ansible.builtin.debug:
+    var: elastic_pass.stdout
+  run_once: true    
+  delegate_to:  "{{ groups.es | first }}" 
+  tags: [always] 
+ 
+- name: Generate enrollment token for additional nodes to connect to the cluster  
+  ansible.builtin.shell: |
+     /usr/share/elasticsearch/bin/elasticsearch-create-enrollment-token -s node
+  register: enroll_token
+  run_once: true    
+  delegate_to:  "{{ groups.es | first }}"
+  tags: [always] 
+
+- name: Ensure enrollment token was generated
+  assert:
+    that: enroll_token is defined and enroll_token.rc == 0
+    fail_msg: "Enrollment token generation failed"
+    success_msg: "Enrollment token generated successfully"
+  run_once: true    
+  delegate_to:  "{{ groups.es | first }}"  
+  tags: [always] 
+
+- name: Print enrollment token
+  ansible.builtin.debug:
+    var: enroll_token.stdout
+  run_once: true    
+  delegate_to:  "{{ groups.es | first }}" 
+  tags: [always]   
+
+- name: Reconfigure other nodes using enrollment-token
+  ansible.builtin.shell: |
+    echo "y" | /usr/share/elasticsearch/bin/elasticsearch-reconfigure-node --enrollment-token {{ enroll_token.stdout }} --silent
+  when: inventory_hostname != groups.es | first
+  tags: [always] 
+
+- name: Start and enable es on the enrolled nodes 
+  ansible.builtin.systemd:
+    name: elasticsearch
+    state: started
+    enabled: yes 
+  delegate_to:  "{{ groups.es[1] }}"
+  run_once: true
+  tags: [always]  
+
+- name: Start and enable es on the enrolled nodes 
+  ansible.builtin.systemd:
+    name: elasticsearch
+    state: started
+    enabled: yes 
+  delegate_to:  "{{ groups.es[2] }}"
+  run_once: true
+  tags: [always]  
+
+- name: Setup Discovery seed host in es config
+  ansible.builtin.lineinfile:
+    path: /etc/elasticsearch/elasticsearch.yml
+    regexp: 'discovery.seed_hosts:.*' 
+    line:  ""
+  tags: [always]
+
+- name: Setup Discovery seed host in es config
+  ansible.builtin.lineinfile:
+    path: /etc/elasticsearch/elasticsearch.yml
+    regexp: '.discovery.seed_hosts:.*' 
+    line:  "discovery.seed_hosts: [\"{{ hostvars[groups.es[0]]['cluster_net_addr']}}\", \"{{ hostvars[groups.es[1]]['cluster_net_addr']}}\", \"{{ hostvars[groups.es[2]]['cluster_net_addr']}}\"]" 
+  tags: [always]
+
+
+
+ #MuY-kUBfs2aj27A2EP7q     
