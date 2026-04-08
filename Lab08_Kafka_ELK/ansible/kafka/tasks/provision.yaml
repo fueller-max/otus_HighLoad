@@ -1,0 +1,166 @@
+- name: Replace the whole content of /etc/hosts
+  ansible.builtin.template:
+      src:  templates/hosts.j2          
+      dest: /etc/hosts      
+      owner: root                           
+      group: root                           
+      mode: '0644'
+  tags: [always]
+
+- name: Ensure that file hosts not get overwritten by cloud init anymore
+  ansible.builtin.lineinfile:
+    path: /etc/cloud/cloud.cfg
+    regexp: '.*?update_etc_hosts' 
+    line: '# - update_etc_hosts' # The desired line
+    backup: true # Create a backup of the original file  
+  tags: [always]
+
+- name: Create a directory for data
+  ansible.builtin.file:
+    path: /var/lib/kafka-logs
+    state: directory
+    owner: kafka
+    group: kafka
+    mode: '770'
+  tags: always  
+
+- name: Create a directory for logs
+  ansible.builtin.file:
+    path: /var/log/kafka
+    state: directory
+    owner: kafka
+    group: kafka
+    mode: '770'
+  tags: always 
+
+- name: Generate cluster ID 
+  ansible.builtin.shell: |
+     /opt/kafka/bin/kafka-storage.sh random-uuid
+  register: cluster_ID
+  run_once: true    
+  delegate_to:  "{{ groups.kafka | first }}"
+  tags: [always] 
+
+- name: Ensure cluster ID was generated
+  assert:
+    that: cluster_ID is defined and cluster_ID.rc == 0
+    fail_msg: "Cluster_ID generation failed"
+    success_msg: "cluster_ID generated successfully"
+  run_once: true    
+  delegate_to:  "{{ groups.kafka | first }}"  
+  tags: [always] 
+
+- name: Print cluster ID 
+  ansible.builtin.debug:
+    var: cluster_ID.stdout
+  run_once: true    
+  delegate_to:  "{{ groups.kafka  | first }}" 
+  tags: [always]  
+
+- name: Generate CONTROLLER 1 UUID 
+  ansible.builtin.shell: |
+     /opt/kafka/bin/kafka-storage.sh random-uuid
+  register: controller_1_uuid
+  run_once: true    
+  delegate_to:  "{{ groups.kafka | first }}"
+  tags: [always]  
+
+- name: Generate CONTROLLER 2 UUID 
+  ansible.builtin.shell: |
+     /opt/kafka/bin/kafka-storage.sh random-uuid
+  register: controller_2_uuid
+  run_once: true    
+  delegate_to:  "{{ groups.kafka | first }}"
+  tags: [always] 
+
+- name: Generate CONTROLLER 3 UUID 
+  ansible.builtin.shell: |
+     /opt/kafka/bin/kafka-storage.sh random-uuid
+  register: controller_3_uuid
+  run_once: true    
+  delegate_to:  "{{ groups.kafka | first }}"
+  tags: [always]  
+
+- name: Render server.properties
+  ansible.builtin.template:
+      src:  templates/server.properties.j2     
+      dest: /opt/kafka/config/server.properties 
+      owner: kafka                          
+      group: kafka                           
+      mode: '0644'      
+  tags: [always] 
+
+- name: Bootstrap the first node 
+  ansible.builtin.shell: |
+     /opt/kafka/bin/kafka-storage.sh format --cluster-id "{{ cluster_ID.stdout }}" --initial-controllers \
+     "1@{{ hostvars[groups.kafka[0]]['inventory_hostname'] }}:9093:{{ controller_1_uuid.stdout }}, \
+     2@{{ hostvars[groups.kafka[1]]['inventory_hostname'] }}:9093:{{ controller_2_uuid.stdout }}, \
+     3@{{ hostvars[groups.kafka[2]]['inventory_hostname'] }}:9093:{{ controller_3_uuid.stdout }}" \
+     --config /opt/kafka/config/server.properties
+  run_once: true    
+  delegate_to:  "{{ groups.kafka | first }}"
+  tags: [always]  
+
+- name: Bootstrap the second node 
+  ansible.builtin.shell: |
+     /opt/kafka/bin/kafka-storage.sh format --cluster-id "{{ cluster_ID.stdout }}" --initial-controllers \
+     "1@{{ hostvars[groups.kafka[0]]['inventory_hostname'] }}:9093:{{ controller_1_uuid.stdout }}, \
+     2@{{ hostvars[groups.kafka[1]]['inventory_hostname'] }}:9093:{{ controller_2_uuid.stdout }}, \
+     3@{{ hostvars[groups.kafka[2]]['inventory_hostname'] }}:9093:{{ controller_3_uuid.stdout }}" \
+     --config /opt/kafka/config/server.properties
+  run_once: true    
+  delegate_to:  "{{ groups.kafka[1] }}"
+  tags: [always]   
+
+- name: Bootstrap the third node 
+  ansible.builtin.shell: |
+     /opt/kafka/bin/kafka-storage.sh format --cluster-id "{{ cluster_ID.stdout }}" --initial-controllers \
+     "1@{{ hostvars[groups.kafka[0]]['inventory_hostname'] }}:9093:{{ controller_1_uuid.stdout }}, \
+     2@{{ hostvars[groups.kafka[1]]['inventory_hostname'] }}:9093:{{ controller_2_uuid.stdout }}, \
+     3@{{ hostvars[groups.kafka[2]]['inventory_hostname'] }}:9093:{{ controller_3_uuid.stdout }}" \
+     --config /opt/kafka/config/server.properties
+  run_once: true    
+  delegate_to:  "{{ groups.kafka[2] }}"
+  tags: [always]    
+
+- name: Set user/group for storage content
+  ansible.builtin.shell: |
+      sudo chown -R kafka:kafka /var/lib/kafka-logs   
+  tags: [always] 
+
+- name: Render kafka systemd unit 
+  ansible.builtin.template:
+        src: templates/kafka.service.j2
+        dest: /etc/systemd/system/kafka.service
+  tags: always
+
+- name: Force systemd to reread configs
+  ansible.builtin.systemd_service:
+    daemon_reload: true
+  tags: always
+
+- name: Enable and start kafka service
+  ansible.builtin.systemd:
+    name: kafka
+    state: restarted
+    enabled: yes
+  register: kafka_service_status
+  tags: always  
+
+- name: Render custom health-checking script
+  ansible.builtin.template:
+      src:  templates/kafka-health-check.j2         
+      dest: /opt/kafka/bin/kafka-health-check.sh
+      owner: root                           
+      group: root                           
+      mode: '0770'
+  tags: [always]
+ 
+- name: Render custom bulk topic creation script
+  ansible.builtin.template:
+      src:  templates/create-topics.sh.j2        
+      dest: /opt/kafka/bin/create-topics.sh
+      owner: root                           
+      group: root                           
+      mode: '0770'
+  tags: [always] 

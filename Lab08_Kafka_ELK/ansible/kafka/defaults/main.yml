@@ -1,0 +1,8 @@
+#SPDX-License-Identifier: MIT-0
+---
+# defaults file for kafka
+kafka_ver: "4.2.0"
+
+java_version: "21"
+
+jvm_heap_size: 2   # heap size in Gb

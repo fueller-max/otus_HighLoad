@@ -1,0 +1,40 @@
+- name: Install OpenJDK of requried version
+  ansible.builtin.apt:
+    name: openjdk-"{{ java_version }}"-jdk
+    state: present
+    update_cache: yes
+  tags: always  
+
+- name: Ensure group "kafka" exists
+  ansible.builtin.group:
+    name: kafka
+    state: present
+  tags: always
+
+- name: Create user "kafka"  
+  ansible.builtin.user:
+    name: kafka
+    shell: /bin/bash
+    create_home: no
+  tags: always 
+
+- name: Create a directory for Kafka
+  ansible.builtin.file:
+    path: /opt/kafka
+    state: directory
+    owner: kafka
+    group: kafka
+    mode: '770'
+  tags: always   
+
+- name: Download and unpack Kafka
+  ansible.builtin.shell: |
+    cd /tmp
+    wget https://downloads.apache.org/kafka/"{{ kafka_ver }}"/kafka_2.13-"{{ kafka_ver }}".tgz
+    tar -xzf kafka_2.13-"{{ kafka_ver }}".tgz
+    mv kafka_2.13-"{{ kafka_ver }}"/* /opt/kafka
+    chown -R kafka:kafka /opt/kafka
+  tags: [always]   
+
+
+ 

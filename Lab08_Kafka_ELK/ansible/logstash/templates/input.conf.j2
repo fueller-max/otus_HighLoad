@@ -1,0 +1,15 @@
+input {
+  kafka {
+    bootstrap_servers => "{{ hostvars[groups.kafka[0]]['cluster_net_addr'] }}:9092,{{ hostvars[groups.kafka[1]]['cluster_net_addr'] }}:9092, {{ hostvars[groups.kafka[2]]['cluster_net_addr'] }}:9092" 
+    topics => ["lab04-backend1", "lab04-backend2", "lab04-backend3", "lab04-load-balancer-1", "lab04-load-balancer-2"]
+    group_id => "logstash-consumer-group"
+    consumer_threads => 3
+    codec => "json"
+    auto_offset_reset => "latest"
+    enable_auto_commit => true
+    auto_commit_interval_ms => 5000
+    decorate_events => true
+    session_timeout_ms => 30000
+    heartbeat_interval_ms => 10000
+  }
+}

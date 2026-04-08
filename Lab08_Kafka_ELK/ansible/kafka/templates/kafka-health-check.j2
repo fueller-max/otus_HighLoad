@@ -1,0 +1,27 @@
+#!/bin/bash
+# kafka-health-check.sh
+# Script for Kafka health checking
+
+KAFKA_HOME="/opt/kafka"
+BOOTSTRAP_SERVER="{{ inventory_hostname }}:9092"
+
+# Check broker availability
+echo "Checking broker availability..."
+$KAFKA_HOME/bin/kafka-broker-api-versions.sh --bootstrap-server $BOOTSTRAP_SERVER >/dev/null 2>&1
+if [ $? -eq 0 ]; then
+    echo "✓ Brokers are accessible"
+else
+    echo "✗ Brokers are not accessible"
+    exit 1
+fi
+
+# check under-replicated partitions
+echo "Checking under-replicated partitions..."
+UNDER_REPLICATED=$($KAFKA_HOME/bin/kafka-topics.sh --bootstrap-server $BOOTSTRAP_SERVER --describe --under-replicated-partitions 2>/dev/null | wc -l)
+if [ $UNDER_REPLICATED -eq 0 ]; then
+    echo "✓ All partitions are properly replicated"
+else
+    echo "⚠ Found $UNDER_REPLICATED under-replicated partitions"
+fi
+
+echo "Health check completed"

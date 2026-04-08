@@ -1,0 +1,41 @@
+#!/bin/bash
+# create-topics.sh
+# Bulk topic creation
+
+KAFKA_HOME="/opt/kafka"
+BOOTSTRAP_SERVER="{{ inventory_hostname }}:9092"
+
+# List of topics
+declare -A TOPICS=(
+    ["lab04-load-balancer-1"]="partitions=3,replication-factor=3"
+    ["lab04-load-balancer-2"]="partitions=3,replication-factor=3"
+    ["lab04-backend1"]="partitions=3,replication-factor=3"
+    ["lab04-backend2"]="partitions=3,replication-factor=3"
+    ["lab04-backend3"]="partitions=3,replication-factor=3"
+    
+)
+
+for topic in "${!TOPICS[@]}"; do
+    echo "Creating topic: $topic"
+    IFS=',' read -ra PARAMS <<< "${TOPICS[$topic]}"
+    
+    PARTITIONS=""
+    REPLICATION=""
+    
+    for param in "${PARAMS[@]}"; do
+        if [[ $param == partitions=* ]]; then
+            PARTITIONS="${param#*=}"
+        elif [[ $param == replication-factor=* ]]; then
+            REPLICATION="${param#*=}"
+        fi
+    done
+    
+    $KAFKA_HOME/bin/kafka-topics.sh --create \
+        --topic "$topic" \
+        --bootstrap-server $BOOTSTRAP_SERVER \
+        --partitions $PARTITIONS \
+        --replication-factor $REPLICATION \
+        --if-not-exists
+    
+    echo "✓ Topic $topic created"
+done

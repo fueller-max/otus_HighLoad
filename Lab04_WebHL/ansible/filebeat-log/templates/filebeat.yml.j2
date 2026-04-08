@@ -273,5 +273,15 @@ filebeat.inputs:
   
 {% endfor %}
 
-output.logstash:
-  hosts: ["{{logstash_host}}"]
+#output.logstash:
+#  hosts: ["{{logstash_host}}"]
+
+output.kafka:
+  hosts:
+    - "10.10.50.80:9092"
+    - "10.10.50.81:9092"
+    - "10.10.50.82:9092"
+  topic: "{{ inventory_hostname }}"
+  required_acks: 1
+  compression: gzip
+  max_message_bytes: 1000000

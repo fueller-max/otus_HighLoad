@@ -1,0 +1,17 @@
+
+- name: Add Elastic Search Repo from Yandex
+  ansible.builtin.shell: |
+         echo "deb [trusted=yes] {{ es_yandex_mirror }} stable main" | sudo tee /etc/apt/sources.list.d/elastic-{{ es_version }}.x.list
+  tags: always       
+
+- name: Update repo indexes  
+  ansible.builtin.apt:
+    update_cache: yes
+    cache_valid_time: 0  
+  tags: always    
+
+- name: Install Kibana
+  ansible.builtin.apt:
+    name: 
+         - kibana 
+  tags: always  

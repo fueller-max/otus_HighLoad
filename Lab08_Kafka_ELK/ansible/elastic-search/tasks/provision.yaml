@@ -132,7 +132,4 @@
     regexp: '.discovery.seed_hosts:.*' 
     line:  "discovery.seed_hosts: [\"{{ hostvars[groups.es[0]]['cluster_net_addr']}}\", \"{{ hostvars[groups.es[1]]['cluster_net_addr']}}\", \"{{ hostvars[groups.es[2]]['cluster_net_addr']}}\"]" 
   tags: [always]
-
-
-
- #MuY-kUBfs2aj27A2EP7q     
+ 

@@ -1,0 +1,71 @@
+- name: Replace the whole content of /etc/hosts
+  ansible.builtin.template:
+      src:  templates/hosts.j2          
+      dest: /etc/hosts      
+      owner: root                           
+      group: root                           
+      mode: '0644'
+  tags: [always]
+
+- name: Ensure that file hosts not get overwritten by cloud init anymore
+  ansible.builtin.lineinfile:
+    path: /etc/cloud/cloud.cfg
+    regexp: '.*?update_etc_hosts' 
+    line: '# - update_etc_hosts' # The desired line
+    backup: true # Create a backup of the original file  
+  tags: [always]
+
+- name: Render Logstash main config 
+  ansible.builtin.template:
+      src:  templates/logstash.yml.j2       
+      dest: /etc/logstash/logstash.yml  
+      owner: logstash                           
+      group: logstash                           
+      mode: '0644'      
+  tags: [always]  
+
+- name: Copy config files 
+  ansible.builtin.template:
+      src: "templates/{{ item }}"
+      dest: "/etc/logstash/conf.d/{{ item }}"
+      owner: logstash                           
+      group: logstash                           
+      mode: '0644'
+  loop:
+      - filter.conf.j2
+      - input.conf.j2
+      - output.conf.j2
+  tags: [always]   
+
+- name: Fetch cert from es node host to control node
+  fetch:
+    src: /etc/elasticsearch/certs/http_ca.crt
+    dest: /tmp/fetched_files/
+    flat: no
+  delegate_to: "{{ groups.es | first }}"   
+  tags: [always]
+
+- name: Ensure destination directory for certs exists
+  ansible.builtin.file:
+        path: /etc/logstash/certs/
+        state: directory
+        owner: logstash  
+        group: logstash  
+        mode: '0755'          
+  tags: [always]
+
+- name: Copy fetched cert to the folder
+  copy:
+    src: /tmp/fetched_files/{{ inventory_hostname }}/etc/elasticsearch/certs/http_ca.crt
+    dest: /etc/logstash/certs/http_ca.crt
+    owner: logstash   
+    group: logstash   
+    mode: '0755'          
+  tags: [always]
+
+- name: Start and enable Logstash 
+  ansible.builtin.systemd:
+    name: logstash
+    state: started
+    enabled: yes 
+  tags: [always]

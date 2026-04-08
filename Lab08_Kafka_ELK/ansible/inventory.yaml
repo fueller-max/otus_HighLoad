@@ -29,13 +29,15 @@ all:
         lab08-kafka-node1:
           ansible_host: 192.168.70.80
           cluster_net_addr: 10.10.50.80
+          node_id: 1
         lab08-kafka-node2:
           ansible_host: 192.168.70.81
-          cluster_net_addr: 10.10.50.81    
+          cluster_net_addr: 10.10.50.81 
+          node_id: 2   
         lab08-kafka-node3:
           ansible_host: 192.168.70.82
           cluster_net_addr: 10.10.50.82     
-         
+          node_id: 3
   vars:
       ansible_user: deploy
       ansible_connection: ssh 

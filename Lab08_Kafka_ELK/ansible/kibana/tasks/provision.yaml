@@ -1,0 +1,69 @@
+- name: Render Kibana config
+  vars:
+    no_nginx: true
+  ansible.builtin.template:
+    src: templates/kibana.yml.j2
+    dest: /etc/kibana/kibana.yml
+    owner: kibana
+    group: kibana
+    mode: '0644'
+  tags: [ always ]
+
+- name: Generate enrollment token for Kibana on es cluster node
+  ansible.builtin.shell: |
+    /usr/share/elasticsearch/bin/elasticsearch-create-enrollment-token -s kibana
+  register: enroll_token_kibana
+  run_once: true
+  delegate_to: "{{ groups.es | first }}"
+  tags: [ always ]
+
+- name: Ensure enrollment token was generated
+  assert:
+    that: enroll_token_kibana is defined and enroll_token_kibana.rc == 0
+    fail_msg: "Enrollment token generation failed"
+    success_msg: "Enrollment token generated successfully"
+  run_once: true
+  delegate_to: "{{ groups.es | first }}"
+  tags: [ always ]
+
+- name: Print enrollment token
+  ansible.builtin.debug:
+    var: enroll_token_kibana.stdout
+  run_once: true
+  delegate_to: "{{ groups.es | first }}"
+  tags: [ always ]
+
+- name: Start and enable Kibana
+  ansible.builtin.systemd:
+    name: kibana
+    state: started
+    enabled: yes
+  tags: [ always ]
+
+- name: Check if kibana port 5601 has been started( Wait for 60 seconds)
+  ansible.builtin.wait_for:
+    port: 5601
+    host: 127.0.0.1
+    state: started
+    delay: 15
+    timeout: 60
+  ignore_errors: true
+  tags: [ always ]
+
+- name: Generate verification code
+  ansible.builtin.shell: |
+    /usr/share/kibana/bin/kibana-verification-code
+  register: kibana_verification_code
+  tags: [ always ]
+
+- name: Ensure kibana verification code was generated
+  assert:
+    that: kibana_verification_code is defined and kibana_verification_code.rc == 0
+    fail_msg: "Enrollment token generation failed"
+    success_msg: "Enrollment token generated successfully"
+  tags: [ always ]
+
+- name: Print kibana verification code
+  ansible.builtin.debug:
+    var: kibana_verification_code.stdout
+  tags: [ always ]
