@@ -19,7 +19,7 @@ resource "proxmox_vm_qemu" "lab08-es-node1" {
         sockets = 1
         type = "host"
     }
-    memory = 3072
+    memory = 4096
     scsihw = "virtio-scsi-single"
 
     # Setup the disk

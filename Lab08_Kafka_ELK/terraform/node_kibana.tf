@@ -19,7 +19,7 @@ resource "proxmox_vm_qemu" "lab08-node-kibana" {
         sockets = 1
         type = "host"
     }
-    memory = 2048
+    memory = 4096
     scsihw = "virtio-scsi-single"
 
     # Setup the disk
