@@ -1,0 +1,60 @@
+- name: Ensure group "consul" exists
+  ansible.builtin.group:
+    name: consul
+    state: present
+  tags: always
+
+- name: Create user "consul"  
+  ansible.builtin.user:
+    name: consul
+    shell: /bin/bash
+    create_home: no
+  tags: always 
+
+- name: Set rights for data dir 
+  ansible.builtin.shell: |
+   chown consul:consul "{{ data_dir }}"
+  tags: [always] 
+
+- name: Set rights for config data + TLS
+  ansible.builtin.shell: |
+   chown -R consul:consul /etc/consul.d
+  tags: [always]
+
+- name: Set strict rights for private key(key.pem)
+  ansible.builtin.shell: |
+   chmod 600  "{{ tls_dir }}"/"{{data_center }}"-server-"{{ domain }}"-"{{ node_id }}"-key.pem
+  tags: [always]
+
+- name: Set rights for public key (.pem)
+  ansible.builtin.shell: |
+   chmod 644  "{{ tls_dir }}"/"{{data_center }}"-server-"{{ domain }}"-"{{ node_id }}".pem
+  tags: [always]  
+
+- name: Create a directoriy for PID file
+  ansible.builtin.file:
+    path: /var/run/consul
+    state: directory
+    mode: '0755'
+    owner: consul
+    group: consul  
+  tags: [always] 
+
+- name: Render system unit file
+  ansible.builtin.template:
+    src: templates/consul.service.j2
+    dest: /etc/systemd/system/consul.service   
+  tags: [always] 
+
+- name: Force systemd to reread configs
+  ansible.builtin.systemd_service:
+    daemon_reload: true
+  tags: always
+
+- name: Enable and start consul service
+  ansible.builtin.systemd:
+    name: consul
+    state: restarted
+    enabled: yes
+  register: consul_service_status
+  tags: always      

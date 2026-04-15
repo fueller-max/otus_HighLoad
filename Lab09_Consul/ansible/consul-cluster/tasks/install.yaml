@@ -1,0 +1,32 @@
+- name: Update repo && install unzip
+  ansible.builtin.apt:
+    name: unzip
+    state: present
+    update_cache: yes
+  tags: [always]  
+  
+- name: Download from Yandex Mirror
+  ansible.builtin.shell: |
+    cd /tmp
+    wget https://hashicorp-releases.yandexcloud.net/consul/"{{ cousul_ver }}"/consul_"{{ cousul_ver }}"_linux_amd64.zip
+  args:
+    creates: consul_"{{ cousul_ver}}"_linux_amd64.zip 
+  tags: [always] 
+
+- name: Unpack Consul  
+  ansible.builtin.shell: |
+    cd /tmp
+    unzip consul_"{{ cousul_ver}}"_linux_amd64.zip -d /usr/bin
+  tags: [always]  
+
+- name: Check installation
+  command: consul --version
+  register: consul_check
+  changed_when: false
+  tags: [always]
+
+- name: Fail if consul is not installed
+  fail:
+    msg: "Consul is not installed"
+  when: consul_check.rc != 0
+  tags: [always]

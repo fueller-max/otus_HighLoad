@@ -1,0 +1,20 @@
+#SPDX-License-Identifier: MIT-0
+---
+# tasks file for consul-cluster
+- name: Install Consul server
+  tags: install
+  ansible.builtin.include_tasks: 
+    file: install.yaml
+  when: ansible_facts["os_family"] == "Debian"
+
+- name: Provision Consul server
+  tags: provision
+  ansible.builtin.include_tasks: 
+   file: provision.yaml
+  when: ansible_facts["os_family"] == "Debian"
+
+- name: Provision Consul server. Systemd part
+  tags: provision
+  ansible.builtin.include_tasks: 
+   file: provision_systemd.yaml
+  when: ansible_facts["os_family"] == "Debian"  

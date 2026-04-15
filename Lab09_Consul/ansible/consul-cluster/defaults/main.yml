@@ -1,0 +1,14 @@
+#SPDX-License-Identifier: MIT-0
+---
+# defaults file for consul-cluster
+cousul_ver: "1.22.6"
+
+cluster_size: "3"
+
+tls_dir: "/etc/consul.d/tls"
+tls_certs_duration: "365"
+
+data_dir: "/opt/consul"
+
+data_center: "dc1"
+domain: "consul"

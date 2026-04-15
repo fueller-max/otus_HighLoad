@@ -1,0 +1,36 @@
+{
+  "node_name": "{{ inventory_hostname }}", 
+  "server": true,
+  "bootstrap_expect": 3,
+  "data_dir": "{{ data_dir }}",
+  "client_addr": "0.0.0.0",
+  "ui": true,
+  "bind_addr": "{{ cluster_net_addr }}",
+  "disable_update_check": true,
+  {% set host_list = groups['consul_servers'] %}
+  {%- set current_host = inventory_hostname -%}
+  {%- set other_hosts = host_list | reject('equalto', current_host) | list -%}
+
+  "retry_join": [{{ other_hosts | join('","') | regex_replace('^', '"') | regex_replace('$', '"') }}],
+  "encrypt": "{{ ENCRYPTION_KEY.stdout }}",
+  "addresses": {
+    "http": "0.0.0.0"
+  },
+  "ports": {
+    "http": 8500
+  },
+  "tls": {
+    "defaults": {
+       "verify_incoming": true,
+       "verify_outgoing": true,
+       "ca_file": "{{ tls_dir }}/consul-agent-ca.pem",
+       "cert_file": "{{ tls_dir }}/{{ data_center }}-server-{{ domain }}-{{ node_id }}.pem",
+       "key_file": "{{ tls_dir }}/{{ data_center }}-server-{{ domain }}-{{ node_id }}-key.pem"
+    },
+    "internal_rpc": {
+      "verify_server_hostname": true
+    }
+  }
+}
+
+

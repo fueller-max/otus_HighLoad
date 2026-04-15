@@ -1,0 +1,47 @@
+all:
+  children:
+     consul_servers:
+       hosts:
+        lab09-consul-srv1:
+          ansible_host: 192.168.70.91
+          cluster_net_addr: 10.10.20.91
+          node_id: 0
+        lab09-consul-srv2:
+          ansible_host: 192.168.70.92
+          cluster_net_addr: 10.10.20.92
+          node_id: 1
+        lab09-consul-srv3:
+          ansible_host: 192.168.70.93
+          cluster_net_addr: 10.10.20.93
+          node_id: 2 
+      
+     load_balancers:
+       hosts:
+         lab04-load-balancer-1:
+           ansible_host: 192.168.70.41
+           cluster_net_addr: 10.10.20.41
+           node_id: 3 
+         lab04-load-balancer-2:
+           ansible_host: 192.168.70.42
+           cluster_net_addr: 10.10.20.42
+           node_id: 4  
+
+     backends:
+       hosts:
+         lab04-backend1:
+           ansible_host: 192.168.70.43
+           cluster_net_addr: 10.10.20.43
+           node_id: 5 
+         lab04-backend2:
+           ansible_host: 192.168.70.44
+           cluster_net_addr: 10.10.20.44
+           node_id: 6
+         lab04-backend3:
+           ansible_host: 192.168.70.45
+           cluster_net_addr: 10.10.20.45
+           node_id: 7             
+                   
+  vars:
+      ansible_user: deploy
+      ansible_connection: ssh 
+      ansible_python_interpreter : /usr/bin/python3.12   

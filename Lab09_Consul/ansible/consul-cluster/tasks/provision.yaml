@@ -1,0 +1,136 @@
+- name: Replace the whole content of /etc/hosts
+  ansible.builtin.template:
+      src:  templates/hosts.j2          
+      dest: /etc/hosts      
+      owner: root                           
+      group: root                           
+      mode: '0644'
+  tags: [always]
+
+- name: Ensure that file hosts not get overwritten by cloud init anymore
+  ansible.builtin.lineinfile:
+    path: /etc/cloud/cloud.cfg
+    regexp: '.*?update_etc_hosts' 
+    line: '# - update_etc_hosts' # The desired line
+    backup: true # Create a backup of the original file  
+  tags: [always]
+
+- name: Create a directoriy for TLS infra
+  ansible.builtin.file:
+    path: "{{ tls_dir }}"
+    state: directory
+    mode: '0755'
+    owner: root
+    group: root  
+  tags: [always] 
+
+- name: Generate encryption key
+  ansible.builtin.shell: |
+    cd "{{ tls_dir }}"
+    consul keygen | tee encryption.key
+  args:
+    creates: encryption.key
+  run_once: true    
+  delegate_to:  "{{ groups.consul_servers | first }}"  
+  tags: [always]  
+
+- name: Generate Certificate Authority
+  ansible.builtin.shell: |
+    cd "{{ tls_dir }}"
+    consul tls ca create
+  args:
+    creates: consul-agent-ca.pem
+  run_once: true    
+  delegate_to:  "{{ groups.consul_servers | first }}"  
+  tags: [always]  
+
+- name: Generate certificates for each node
+  ansible.builtin.shell: |
+    cd "{{ tls_dir }}"
+    consul tls cert create -server -dc "{{ data_center }}"
+  args:
+    creates: "{{ tls_dir }}/server-{{ item }}.crt"
+  loop: "{{ groups.consul_servers }}"    
+  delegate_to:  "{{ groups.consul_servers | first }}"
+  run_once: true 
+  tags: [always]  
+
+- name: Create a directoriy for data
+  ansible.builtin.file:
+    path: "{{ data_dir }}"
+    state: directory
+    mode: '0755'
+    owner: root
+    group: root   
+  tags: [always] 
+
+- name: Read encryption key 
+  ansible.builtin.shell:  'cat {{ tls_dir }}/encryption.key'
+  register: ENCRYPTION_KEY
+  run_once: true    
+  delegate_to:  "{{ groups.consul_servers | first }}"
+  tags: [always]  
+
+- name: Render server config
+  ansible.builtin.template:
+    src: templates/consul.json.j2
+    dest: /etc/consul.d/consul.json   
+  tags: [always] 
+ 
+- name: Fetch CA from 1st node host to control node
+  fetch:
+    src: "{{ tls_dir }}/consul-agent-ca.pem"
+    dest: /tmp/fetched_files/
+    flat: no
+  delegate_to: "{{ groups.consul_servers | first }}"
+  run_once: true    
+  tags: [always]
+
+- name: Copy CA to nodes 
+  copy:
+    src: /tmp/fetched_files/{{ inventory_hostname }}/{{ tls_dir}}/consul-agent-ca.pem
+    dest: "{{ tls_dir }}/consul-agent-ca.pem"
+    owner: root   
+    group: root   
+    mode: '0755'  
+  when: inventory_hostname !=  groups['consul_servers'][0]       
+  tags: [always]   
+
+- name: Find TLS certificate files on 1st node
+  ansible.builtin.find:
+    paths: "{{ tls_dir }}"
+    patterns: "{{ data_center }}-server-consul-*"
+  register: cert_files
+  delegate_to: "{{ groups.consul_servers | first }}"
+  run_once: true  
+  tags: [always]
+
+- name: Fetch found TLS certificates
+  ansible.builtin.fetch:
+    src: "{{ item.path }}"
+    dest: "/tmp/fetched_files/"
+    flat: no
+  loop: "{{ cert_files.files }}"
+  delegate_to: "{{ groups.consul_servers | first }}"
+  run_once: true
+  tags: [always]
+
+- name: Copy fetched certs to nodes - cert
+  copy:
+    src: /tmp/fetched_files/{{ groups['consul_servers'][0] }}/{{ tls_dir }}/{{ data_center }}-server-{{ domain }}-{{ node_id }}.pem
+    dest: "{{ tls_dir }}/{{ data_center }}-server-{{ domain }}-{{ node_id }}.pem"
+    owner: root   
+    group: root   
+    mode: '0755'  
+  when: inventory_hostname !=  groups['consul_servers'][0]       
+  tags: [always] 
+
+- name: Copy fetched certs to nodes - key
+  copy:
+    src: /tmp/fetched_files/{{ groups['consul_servers'][0] }}/{{ tls_dir }}/{{ data_center }}-server-{{ domain }}-{{ node_id }}-key.pem
+    dest: "{{ tls_dir }}/{{ data_center }}-server-{{ domain }}-{{ node_id }}-key.pem"
+    owner: root   
+    group: root   
+    mode: '0755'  
+  when: inventory_hostname !=  groups['consul_servers'][0]       
+  tags: [always]   
