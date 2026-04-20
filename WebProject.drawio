@@ -1,6 +1,6 @@
 <mxfile host="app.diagrams.net" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36">
   <diagram name="Page-1" id="LvtPqEgjn-X0uk07YTfr">
-    <mxGraphModel dx="2357" dy="1292" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="2339" pageHeight="3300" math="0" shadow="0">
+    <mxGraphModel dx="2020" dy="1107" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="2339" pageHeight="3300" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
@@ -801,6 +801,21 @@
             <mxPoint x="825" y="4048" as="sourcePoint" />
             <mxPoint x="1005" y="3652" as="targetPoint" />
           </mxGeometry>
+        </mxCell>
+        <mxCell id="bj1k9yuxJTeC3EmlAm6B-1" parent="1" style="rounded=1;whiteSpace=wrap;html=1;" value="" vertex="1">
+          <mxGeometry height="106" width="170" x="204" y="4096.5" as="geometry" />
+        </mxCell>
+        <mxCell id="bj1k9yuxJTeC3EmlAm6B-2" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" value="&lt;font style=&quot;font-size: 22px;&quot;&gt;DNS&lt;/font&gt;" vertex="1">
+          <mxGeometry height="30" width="60" x="256" y="4134.5" as="geometry" />
+        </mxCell>
+        <mxCell id="bj1k9yuxJTeC3EmlAm6B-3" edge="1" parent="1" source="bj1k9yuxJTeC3EmlAm6B-1" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" target="hasgurcdghBNvdIeHJUC-54" value="">
+          <mxGeometry height="50" relative="1" width="50" as="geometry">
+            <mxPoint x="825" y="3969" as="sourcePoint" />
+            <mxPoint x="875" y="3919" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="bj1k9yuxJTeC3EmlAm6B-4" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" value="&lt;font style=&quot;font-size: 14px;&quot;&gt;:&lt;font style=&quot;&quot;&gt;8600&lt;/font&gt;&lt;/font&gt;" vertex="1">
+          <mxGeometry height="30" width="60" x="436" y="4112" as="geometry" />
         </mxCell>
       </root>
     </mxGraphModel>
