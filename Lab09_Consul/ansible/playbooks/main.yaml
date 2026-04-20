@@ -1,49 +1,49 @@
-# - name: Install & Provision Consul Cluster
-#   hosts: consul_servers
-#   become: true
-#   roles:
-#         - role: consul-cluster 
+- name: Install & Provision Consul Cluster
+  hosts: consul_servers
+  become: true
+  roles:
+        - role: consul-cluster 
       
-# - name: Install & Provision Consul clients
-#   hosts: load_balancers
-#   become: true
-#   vars:
-#     client_group_name: "load_balancers"
-#   roles:
-#         - role: consul-client 
+- name: Install & Provision Consul clients
+  hosts: load_balancers
+  become: true
+  vars:
+    client_group_name: "load_balancers"
+  roles:
+        - role: consul-client 
 
-# - name: Install & Provision Consul clients
-#   hosts: backends
-#   become: true
-#   vars:
-#     client_group_name: "backends"
-#   roles:
-#         - role: consul-client      
+- name: Install & Provision Consul clients
+  hosts: backends
+  become: true
+  vars:
+    client_group_name: "backends"
+  roles:
+        - role: consul-client      
 
 
-# - name: Provision services configurations. Load balancers
-#   hosts: load_balancers
-#   become: true
-#   vars:
-#     service_name: "load_balancer"
-#     service_address: "{{ ansible_host }}"
-#     http_addr: "localhost"
-#     http_port: "80"
-#     health_endpoint: "/status/"
-#   roles:
-#         - role: consul-services-http          
+- name: Provision services configurations. Load balancers
+  hosts: load_balancers
+  become: true
+  vars:
+    service_name: "load_balancer"
+    service_address: "{{ ansible_host }}"
+    http_addr: "localhost"
+    http_port: "80"
+    health_endpoint: "/status/"
+  roles:
+        - role: consul-services-http          
 
-# - name: Provision services configurations. Backends
-#   hosts: backends
-#   become: true
-#   vars:
-#     service_name: "backend"
-#     service_address: "{{ cluster_net_addr }}"
-#     http_addr: "localhost"
-#     http_port: "80"
-#     health_endpoint: ""
-#   roles:
-#         - role: consul-services-http        
+- name: Provision services configurations. Backends
+  hosts: backends
+  become: true
+  vars:
+    service_name: "backend"
+    service_address: "{{ cluster_net_addr }}"
+    http_addr: "localhost"
+    http_port: "80"
+    health_endpoint: ""
+  roles:
+        - role: consul-services-http        
 
 - name: Provision template configurations. Load balancers
   hosts: load_balancers
