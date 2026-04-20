@@ -1,0 +1,10 @@
+template {
+  source      = "/etc/angie/http.d/backend-upstream.tmpl"
+  destination = "/etc/angie/http.d/backend.upstream"
+  command     = "angie -t && angie -s reload"
+  perms       = 0644
+}
+
+consul {
+  address = "127.0.0.1:8500"
+}

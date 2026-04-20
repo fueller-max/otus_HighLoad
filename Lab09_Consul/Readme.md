@@ -45,3 +45,171 @@ lab09-consul-srv2  3ef46df0-53a8-d226-f026-1da7d77b9a35  10.10.20.92:8300  follo
 deploy@lab09-consul-srv1:/etc/consul.d$ curl http://127.0.0.1:8500/v1/status/leader
 "10.10.20.91:8300"
 ```
+
+```bash
+deploy@lab09-consul-srv1:~$ consul catalog services
+backend
+consul
+load_balancer
+deploy@lab09-consul-srv1:~$ dig @127.0.0.1 -p 8600 load_balancer.service.consul A +short
+192.168.70.41
+192.168.70.42
+deploy@lab09-consul-srv1:~$ dig @127.0.0.1 -p 8600 backend.service.consul A +short
+10.10.20.44
+10.10.20.45
+10.10.20.43
+
+```
+
+```bash
+// ------- consul zone ---------------------------
+// Forward to Consul cluster
+zone "consul" IN {
+    type forward;
+    forward only;
+    forwarders {
+        192.168.70.91 port 8600;  # serv_1 Consul
+        192.168.70.92 port 8600;  # serv_2 Consul
+        192.168.70.93 port 8600;  # serv_3 Consul
+    };
+};
+// ---------------------------------------------
+
+```
+
+```bash
+maksim@maksim-asus-tuf:~$ dig load_balancer.service.consul
+
+; <<>> DiG 9.18.39-0ubuntu0.24.04.3-Ubuntu <<>> load_balancer.service.consul
+;; global options: +cmd
+;; Got answer:
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 64989
+;; flags: qr rd ra; QUERY: 1, ANSWER: 2, AUTHORITY: 0, ADDITIONAL: 1
+
+;; OPT PSEUDOSECTION:
+; EDNS: version: 0, flags:; udp: 65494
+;; QUESTION SECTION:
+;load_balancer.service.consul.	IN	A
+
+;; ANSWER SECTION:
+load_balancer.service.consul. 0	IN	A	192.168.70.42
+load_balancer.service.consul. 0	IN	A	192.168.70.41
+
+;; Query time: 5 msec
+;; SERVER: 127.0.0.53#53(127.0.0.53) (UDP)
+;; WHEN: Mon Apr 20 11:45:25 MSK 2026
+;; MSG SIZE  rcvd: 89
+
+```
+
+Тест отключание балансировщика 
+
+```bash
+maksim@maksim-asus-tuf:~$ dig load_balancer.service.consul
+
+; <<>> DiG 9.18.39-0ubuntu0.24.04.3-Ubuntu <<>> load_balancer.service.consul
+;; global options: +cmd
+;; Got answer:
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 49459
+;; flags: qr rd ra; QUERY: 1, ANSWER: 1, AUTHORITY: 0, ADDITIONAL: 1
+
+;; OPT PSEUDOSECTION:
+; EDNS: version: 0, flags:; udp: 65494
+;; QUESTION SECTION:
+;load_balancer.service.consul.	IN	A
+
+;; ANSWER SECTION:
+load_balancer.service.consul. 0	IN	A	192.168.70.41
+
+;; Query time: 8 msec
+;; SERVER: 127.0.0.53#53(127.0.0.53) (UDP)
+;; WHEN: Mon Apr 20 11:50:33 MSK 2026
+;; MSG SIZE  rcvd: 73
+
+```
+
+```bash
+deploy@lab04-load-balancer-2:~$ sudo systemctl stop angie
+
+```
+
+Включение 
+
+```bash
+maksim@maksim-asus-tuf:~$ dig load_balancer.service.consul
+
+; <<>> DiG 9.18.39-0ubuntu0.24.04.3-Ubuntu <<>> load_balancer.service.consul
+;; global options: +cmd
+;; Got answer:
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 1361
+;; flags: qr rd ra; QUERY: 1, ANSWER: 2, AUTHORITY: 0, ADDITIONAL: 1
+
+;; OPT PSEUDOSECTION:
+; EDNS: version: 0, flags:; udp: 65494
+;; QUESTION SECTION:
+;load_balancer.service.consul.	IN	A
+
+;; ANSWER SECTION:
+load_balancer.service.consul. 0	IN	A	192.168.70.41
+load_balancer.service.consul. 0	IN	A	192.168.70.42
+
+;; Query time: 6 msec
+;; SERVER: 127.0.0.53#53(127.0.0.53) (UDP)
+;; WHEN: Mon Apr 20 11:53:10 MSK 2026
+;; MSG SIZE  rcvd: 89
+
+```
+
+Template:
+
+```bash
+
+```
+
+
+```bash
+deploy@lab04-backend3:~$ sudo systemctl stop nginx
+
+```
+
+``` bash
+upstream backend {
+    zone backend 1m;
+
+    server  10.10.20.43:8080 max_fails=3 fail_timeout=30s;
+
+    server  10.10.20.44:8080 max_fails=3 fail_timeout=30s;
+
+}
+
+```
+
+```bash
+deploy@lab04-backend3:~$ sudo systemctl start nginx
+
+```
+
+```bash
+upstream backend {
+    zone backend 1m;
+
+    server  10.10.20.43:8080 max_fails=3 fail_timeout=30s;
+
+    server  10.10.20.44:8080 max_fails=3 fail_timeout=30s;
+
+    server  10.10.20.45:8080 max_fails=3 fail_timeout=30s;
+
+}
+
+
+```
+
+```bash
+
+
+angie: the configuration file /etc/angie/angie.conf syntax is ok
+angie: configuration file /etc/angie/angie.conf test is successful
+angie: the configuration file /etc/angie/angie.conf syntax is ok
+angie: configuration file /etc/angie/angie.conf test is successful
+
+```

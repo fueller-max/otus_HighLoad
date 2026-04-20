@@ -1,0 +1,19 @@
+{
+  "service": {
+    "id": "{{ inventory_hostname }}",
+    "name": "{{ service_name }}",
+    "tags": ["angie", "load-balancer", "prod"],
+    "address": "{{ service_address }}",
+    "port":  {{ http_port | int }} ,
+    "checks": [
+      {
+        "id": "angie-http-check",
+        "name": "HTTP on port {{ http_port }}",
+        "http": "http://{{ http_addr }}:{{ http_port }}{{ health_endpoint }}",
+        "method": "GET",
+        "interval": "10s",
+        "timeout": "5s"
+      }
+    ]
+  }
+}

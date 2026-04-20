@@ -1,0 +1,4 @@
+#SPDX-License-Identifier: MIT-0
+---
+# defaults file for consul-templ-angie
+consul_templ_version: "0.42.0"

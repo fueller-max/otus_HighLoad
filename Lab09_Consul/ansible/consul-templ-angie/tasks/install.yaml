@@ -1,0 +1,32 @@
+- name: Update repo && install unzip
+  ansible.builtin.apt:
+    name: unzip
+    state: present
+    update_cache: yes
+  tags: [always]  
+  
+- name: Download consul-template from Yandex Mirror
+  ansible.builtin.shell: |
+    cd /tmp
+    wget https://hashicorp-releases.yandexcloud.net/consul-template//"{{ consul_templ_version }}"/consul-template_"{{ consul_templ_version }}"_linux_amd64.zip
+  args:
+    creates: consul-template_"{{ consul_templ_version }}"_linux_amd64.zip 
+  tags: [always]  
+
+- name: Unpack consul template  
+  ansible.builtin.shell: |
+    cd /tmp
+    echo y | unzip consul-template_"{{ consul_templ_version }}"_linux_amd64.zip -d /usr/bin
+  tags: [always]  
+
+- name: Check installation
+  command: consul-template --version
+  register: consul_templ_check
+  changed_when: false
+  tags: [always]  
+
+- name: Fail if consul template is not installed
+  fail:
+    msg: "Consul-template is not installed"
+  when: consul_templ_check != 0
+  tags: [always]  

@@ -1,0 +1,22 @@
+- name: Render template configuration
+  ansible.builtin.template:
+    src: templates/consul-templ-angie.hcl.j2
+    dest: /etc/consul.d/consul-templ-angie.hcl  
+    mode: '0755'
+    owner: consul
+    group: consul
+  tags: [always]
+
+- name: Copy template for Angie upstream
+  ansible.builtin.copy:
+    src: files/backend-upstream.tmpl
+    dest: /etc/angie/http.d/backend-upstream.tmpl 
+    mode: '0755'
+    owner: consul
+    group: consul
+  tags: [always] 
+
+- name: Register the service
+  ansible.builtin.shell:  |
+    consul-template -config /etc/consul.d/consul-templ-angie.hcl > /var/log/consul-template.log 2>&1 &
+  tags: [always]

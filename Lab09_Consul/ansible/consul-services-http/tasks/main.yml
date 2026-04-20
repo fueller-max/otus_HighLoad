@@ -1,0 +1,16 @@
+#SPDX-License-Identifier: MIT-0
+---
+# tasks file for consul-services-http
+- name: Render  service configurations
+  ansible.builtin.template:
+    src: templates/http_service.json.j2
+    dest: /etc/consul.d/{{ inventory_hostname }}.json  
+    mode: '0755'
+    owner: consul
+    group: consul
+  tags: consul_services  
+
+- name: Register the service
+  ansible.builtin.shell:  |
+    consul services register /etc/consul.d/{{ inventory_hostname }}.json
+  tags: consul_services    
