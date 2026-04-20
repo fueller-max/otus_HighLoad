@@ -28,7 +28,7 @@
 2. Балансировщики трафика 2 ноды
 3. Бэкенды - 3 ноды
 
-На каждой из нод балансировщиков и бекендов установлен Сonsul Agent для обнаружения сервиса и его регистрации в общей системе Сonsul. Целью на балансировщиках является распределение входящего трафика на них посредством выдачи DNS ответов с их IP адресами (схема со статическим IP с использованием VRRP упраздняется). Сервис-дискавери на бэкендах работает с целью определения актуальных живых бекендов и динамической генерации upstream конфига для балансировщиков.
+На каждой из нод балансировщиков и бекендов установлен Сonsul Agent для обнаружения сервиса и его регистрации в общей системе Сonsul. Целью работы на балансировщиках является распределение входящего трафика на них посредством выдачи DNS ответов с их IP адресами (схема со статическим IP с использованием VRRP упраздняется). Сервис-дискавери на бэкендах работает с целью определения актуальных живых бекендов и динамической генерации upstream конфига для балансировщиков.
 
 ### 1. Разворачиваем Consul кластер.
 
@@ -483,37 +483,76 @@ Consul клиенты также запускаются как сервисы sy
 
 ### 3. Регистрация сервисов в Consul
 
+#### 3.1 Регистрация сервиса Angie (балансировщик) в Сonsul.
 
-<details>
-  <summary>install.yaml</summary>
+Для регистрации сервиса Angie в Сonsul используем следующий конфиг:
 
-  ```bash
-  
-  ```
-</details> 
+```bash
+{
+  "service": {
+    "id": "{{ inventory_hostname }}",
+    "name": "{{ service_name }}",
+    "tags": ["angie", "load-balancer", "prod"],
+    "address": "{{ service_address }}",
+    "port":  {{ http_port | int }} ,
+    "checks": [
+      {
+        "id": "angie-http-check",
+        "name": "HTTP on port {{ http_port }}",
+        "http": "http://{{ http_addr }}:{{ http_port }}{{ health_endpoint }}",
+        "method": "GET",
+        "interval": "10s",
+        "timeout": "5s"
+      }
+    ]
+  }
+}
+```
 
-<details>
-  <summary>provision.yaml</summary>
+В качестве heath-check используем HTTP запрос к endpoint Angie для переодической проверки доступности сервиса. 
+Регистрируем сервис в Сonsul:
 
-  ```bash
+```bash
+- name: Register the service
+  ansible.builtin.shell:  |
+    consul services register /etc/consul.d/{{ inventory_hostname }}.json
+  tags: consul_services  
+```
 
-  ```
-</details>  
+#### 3.2 Регистрация сервиса Nginx (бэкенд) в Сonsul.
+
+Регистрация сервиса Nginx полностью аналогична описанной выше. Данная проверка носит немного упрощенный характер, т.к. проверяет только доступность сервиса Nginx на бекенде (что он активен в состоянии отдавать ответы). Реализация более полной проверки скорее вопрос к реализации более продвинутой логики на уровне самого бекенда (реализация эндпонта, ответ которого также будет учитывать и здоровье самого Wordpress).
+
+### 4. Проверка работы. Настройка DNS.
+
+Для начала убедимся, что все сервисы доступны в Consul:
 
 ```bash
 deploy@lab09-consul-srv1:~$ consul catalog services
 backend
 consul
 load_balancer
+```
+Видим, что все сервисы доступны - load_balancer(2 балансировщика), backend (3 бэкенда) и сам consul.
+
+Проверим работу DNS системы Consul на предмет выдачи IP адресоа по доменному имени:
+```bash
 deploy@lab09-consul-srv1:~$ dig @127.0.0.1 -p 8600 load_balancer.service.consul A +short
 192.168.70.41
 192.168.70.42
+```
+
+Также убедимся, что все три бекенда доступны
+```bash
 deploy@lab09-consul-srv1:~$ dig @127.0.0.1 -p 8600 backend.service.consul A +short
 10.10.20.44
 10.10.20.45
 10.10.20.43
-
 ```
+
+Видим, что доменное имя load_balancer.service.consul  разрешается в два IP адреса наших балансировщиков. Можем использовать данный DNS сервер в качестве источника для вышестоящего основного DNS (в нашем случае bind9).
+
+Для этого необходимо добавить зону типа "forward" и указанием IP адресов и порта для передаресации запросов DNS. В качестве IP адресов используем адреса нод нашего кластера, порт 8600 - стандартный для consul DNS. Использование трех адресов повышает отказоустойчивость системы. 
 
 ```bash
 // ------- consul zone ---------------------------
@@ -530,6 +569,8 @@ zone "consul" IN {
 // ---------------------------------------------
 
 ```
+
+Делаем DNS запрос уже на основной хостовой системе и получаем резолвинг адресов наших балансировщиков:
 
 ```bash
 maksim@maksim-asus-tuf:~$ dig load_balancer.service.consul
@@ -556,22 +597,19 @@ load_balancer.service.consul. 0	IN	A	192.168.70.41
 
 ```
 
-Тест отключание балансировщика 
+Тест отключение одного балансировщика: 
+
+```bash
+deploy@lab04-load-balancer-2:~$ sudo systemctl stop angie
+```
 
 ```bash
 maksim@maksim-asus-tuf:~$ dig load_balancer.service.consul
 
 ; <<>> DiG 9.18.39-0ubuntu0.24.04.3-Ubuntu <<>> load_balancer.service.consul
 ;; global options: +cmd
-;; Got answer:
-;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 49459
-;; flags: qr rd ra; QUERY: 1, ANSWER: 1, AUTHORITY: 0, ADDITIONAL: 1
 
-;; OPT PSEUDOSECTION:
-; EDNS: version: 0, flags:; udp: 65494
-;; QUESTION SECTION:
-;load_balancer.service.consul.	IN	A
-
+****
 ;; ANSWER SECTION:
 load_balancer.service.consul. 0	IN	A	192.168.70.41
 
@@ -580,45 +618,98 @@ load_balancer.service.consul. 0	IN	A	192.168.70.41
 ;; WHEN: Mon Apr 20 11:50:33 MSK 2026
 ;; MSG SIZE  rcvd: 73
 
+****
 ```
+
+Видим, что при отключении одного из балансировщиков его адрес перестал выдаваться в списке DNS ответа. 
+
+Включаем балансировщик обратно и убеждаемся, что его IP адрес снова стал выдаваться. 
 
 ```bash
-deploy@lab04-load-balancer-2:~$ sudo systemctl stop angie
-
+deploy@lab04-load-balancer-2:~$ sudo systemctl start angie
 ```
-
-Включение 
 
 ```bash
 maksim@maksim-asus-tuf:~$ dig load_balancer.service.consul
 
 ; <<>> DiG 9.18.39-0ubuntu0.24.04.3-Ubuntu <<>> load_balancer.service.consul
 ;; global options: +cmd
-;; Got answer:
-;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 1361
-;; flags: qr rd ra; QUERY: 1, ANSWER: 2, AUTHORITY: 0, ADDITIONAL: 1
 
-;; OPT PSEUDOSECTION:
-; EDNS: version: 0, flags:; udp: 65494
-;; QUESTION SECTION:
-;load_balancer.service.consul.	IN	A
-
+***
 ;; ANSWER SECTION:
 load_balancer.service.consul. 0	IN	A	192.168.70.41
 load_balancer.service.consul. 0	IN	A	192.168.70.42
 
-;; Query time: 6 msec
-;; SERVER: 127.0.0.53#53(127.0.0.53) (UDP)
-;; WHEN: Mon Apr 20 11:53:10 MSK 2026
-;; MSG SIZE  rcvd: 89
-
+***
 ```
 
-Template:
+Также, когда оба балансировщика в работе, при запросах DNS их адреса менются в списке местами:
+```bash
+maksim@maksim-asus-tuf:~$ dig load_balancer.service.consul
+
+; <<>> DiG 9.18.39-0ubuntu0.24.04.3-Ubuntu <<>> load_balancer.service.consul
+;; global options: +cmd
+;; Got answer:
+
+;; QUESTION SECTION:
+;load_balancer.service.consul.	IN	A
+
+;; ANSWER SECTION:
+load_balancer.service.consul. 0	IN	A	192.168.70.42
+load_balancer.service.consul. 0	IN	A	192.168.70.41
+```
+тем самым также реализуя механизм простой round-robin балансировки на уровне DNS.
+
+
+### 5. Проверка работы. Настройка Template.
+
+Как было описано выше, реализуем также автоматическую генерацию upstream конфига для балансировщиков на базе сервис-дискавери Consul. 
+Для работы данного механизма необходимо установить доп. пакет consul-template (установка полностью аналогична установке основного consul)
+
+Далее создаем consul-template с указанием самого темплейт-файла(source), таргет файла (destination), а также команды для целевой системы. В данном случае - проверка конфига и загрузка нового конфига для angie: 
 
 ```bash
+template {
+  source      = "/etc/angie/http.d/backend-upstream.tmpl"
+  destination = "/etc/angie/http.d/backend.upstream"
+  command     = "angie -t && angie -s reload"
+  perms       = 0644
+}
 
+consul {
+  address = "127.0.0.1:8500"
+}
 ```
+
+темплейт-файл:
+```bash
+upstream backend {
+    zone backend 1m;
+    {{ range service "backend" }}
+    server  {{ .Address }}:8080 max_fails=3 fail_timeout=30s;
+    {{ end }}
+}
+```
+
+Consul на базе состояний сервиса backend будет добавлять все доступные ноды и формировать таким образом актуальный конфиг доступных бэкендов.
+
+Результирующий конфиг для полностью работающей системы получается таким:
+
+```bash
+```bash
+upstream backend {
+    zone backend 1m;
+
+    server  10.10.20.43:8080 max_fails=3 fail_timeout=30s;
+
+    server  10.10.20.44:8080 max_fails=3 fail_timeout=30s;
+
+    server  10.10.20.45:8080 max_fails=3 fail_timeout=30s;
+
+}
+```
+
+При отключении одного из бекендов конфиг автоматически меняется и недоступный бекенд убирается из списка:
 
 
 ```bash
@@ -638,9 +729,10 @@ upstream backend {
 
 ```
 
+При включении появляется обратно:
+
 ```bash
 deploy@lab04-backend3:~$ sudo systemctl start nginx
-
 ```
 
 ```bash
@@ -654,16 +746,16 @@ upstream backend {
     server  10.10.20.45:8080 max_fails=3 fail_timeout=30s;
 
 }
-
-
 ```
+В логах consul-template появляются такие записи, говорящие об успешной проверке и загрузке актуального конфига Angie: 
 
 ```bash
-
-
 angie: the configuration file /etc/angie/angie.conf syntax is ok
 angie: configuration file /etc/angie/angie.conf test is successful
 angie: the configuration file /etc/angie/angie.conf syntax is ok
 angie: configuration file /etc/angie/angie.conf test is successful
-
 ```
+
+Выводы:
+
+В данной работы была рассмотрена система сервис-дискавери Consul, которая представляет собой очень эффективный и гибкий инструмент управления и динамической конфигурации архитектуры. Были применены возможности DNS системы для балансировки входящего трафика на основе работы системы DNS, а также возможности системы consul-template для динамического управления конфигурацией балансировщика. Что дает возможности очень гибкого управления архитектурой.   
