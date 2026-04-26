@@ -1,13 +1,13 @@
-resource "proxmox_vm_qemu" "lab10_centos_10" {
-    name = "lab10_centos_10"
-    description = "lab10_centos_10"
+resource "proxmox_vm_qemu" "lab10_ubuntu_24" {
+    name = "lab10-ubuntu-24"
+    description = "lab10_ubuntu_24"
 
     # Node name has to be the same name as within the cluster
     # this might not include the FQDN
     target_node = "proxmox"
 
     # The template name to clone this vm from
-    clone = "Ubuntu2404-Template"
+    clone = "Ubuntu2404-live-server"
 
     # Activate QEMU agent for this VM
     #agent = 1
@@ -34,7 +34,7 @@ resource "proxmox_vm_qemu" "lab10_centos_10" {
         virtio {
             virtio0 {
                 disk {
-                    size            = "10G"
+                    size            = "12G"
                     storage         = var.storage_name
                     replicate       = true
                 }
