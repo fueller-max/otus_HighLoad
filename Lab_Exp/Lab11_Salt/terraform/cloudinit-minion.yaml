@@ -1,0 +1,31 @@
+#cloud-config
+package_update: true
+
+write_files:
+  - path: /etc/salt/minion
+    content: |
+      master: ${lab11-salt-master_ext_ip_address}
+
+runcmd:
+- |
+  set -e
+  mkdir -m 755 -p /etc/apt/keyrings
+  curl -fsSL https://packages.broadcom.com/artifactory/api/security/keypair/SaltProjectKey/public | gpg --dearmor | tee /etc/apt/keyrings/salt-archive-keyring.pgp > /dev/null
+  curl -fsSL https://github.com/saltstack/salt-install-guide/releases/latest/download/salt.sources | tee /etc/apt/sources.list.d/salt.sources
+  apt update
+  apt install -y salt-minion
+
+  # Waiting Salt Master avalability (max 300 sec)
+  for i in {1..300}; do
+    if nc -z ${salt_master_ip} 4506; then
+      echo "Salt Master is reachable, proceeding..."
+        break
+    fi
+      sleep 1
+  done
+
+  systemctl enable --now salt-minion
+  sleep 5
+  systemctl restart salt-minio
+
+final_message: "Salt Minion installation and configuration completed successfully!" 
