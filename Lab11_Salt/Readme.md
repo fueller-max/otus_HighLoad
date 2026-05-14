@@ -15,11 +15,16 @@ Salt: конфигурация на несколько серверов
 
 ### 1. Подготовка виртуальных машин
 
+Для работы развернем два виртуальные машины в Proxmox с использованием Terraform. Одна из машин будет выполнять роль Salt-мастера, другая Salt-миниона.
+
 ### 2. Установка SaltStack
+
+Для установки и настройки Salt Stack будем использовать официальную документацию Salt Project, доступную по ссылке:
+https://docs.saltproject.io/salt/install-guide/en/latest/index.html
 
 #### 2.1.1 Установка Salt Master
 
-https://docs.saltproject.io/salt/install-guide/en/latest/index.html
+Обновляем ключи/репозитории:
 
 ```bash
 # Ensure keyrings dir exists
@@ -30,12 +35,16 @@ curl -fsSL https://packages.broadcom.com/artifactory/api/security/keypair/SaltPr
 curl -fsSL https://github.com/saltstack/salt-install-guide/releases/latest/download/salt.sources | sudo tee /etc/apt/sources.list.d/salt.sources
 ```
 
+Выбираем актуальную на сегодня LTS версию 3006: 
+
 ```bash
 sudo cat /etc/apt/preferences.d/salt-pin-1001
 Package: salt-*
 Pin: version 3006.*
 Pin-Priority: 1001
 ```
+
+Выполняем установку Salt - master:
 
 ```bash
 deploy@lab11-salt-master:~$ sudo apt update
@@ -45,11 +54,15 @@ deploy@lab11-salt-master:~$ salt-master --version
 salt-master 3006.24 (Sulfur)
 ```
 
+Запускаем Salt - master:
+
 ```bash
 deploy@lab11-salt-master:~$ sudo systemctl enable salt-master && sudo systemctl start salt-master
 ```
 
 #### 2.1.2 Установка Salt Minion
+
+Установка аналогична установке Salt - master. После обновления репозиториев выполняем установку Salt - minion
 
 ```bash
 deploy@lab11-salt-minion:~$ sudo apt update
@@ -66,7 +79,11 @@ deploy@lab11-salt-minion:~$ sudo systemctl enable salt-minion && sudo systemctl 
 
 ### 2.2 Post-config 
 
+После установки делаем базовую пост-конфигурацию Salt stack 
+
 #### 2.2.1 Salt Master
+
+В файле network.conf настраиваем интерфейс, на котором будет Salt мастер будет прослушивать.
 
 ```bash
 /etc/salt/master.d/network.conf
@@ -74,6 +91,7 @@ deploy@lab11-salt-minion:~$ sudo systemctl enable salt-minion && sudo systemctl 
 # The network interface to bind to
 interface: 192.168.70.110
 ```
+Проверяем, что Salt мастер запустился и слушает на стандартных Salt-стека портах 4505/4506:
 
 ```bash
 deploy@lab11-salt-master:~$ ss -tulpn
@@ -85,18 +103,26 @@ tcp          LISTEN        0             1000                 192.168.70.110:450
 
 #### 2.2.2 Salt Minion
 
+В файле master.conf настраиваем IP адрес мастера. По дефолту, минионы используют DNS для обращения к мастеру, однако можем также задать непосредственно IP адрес.  
+
 ```bash
 /etc/salt/minion.d/master.conf
 
 master: 192.168.70.110
 ```
 
+Задаем ID нашего миниона:
+
 ```bash
 /etc/salt/minion.d/id.conf
 id: rebel_1
 ```
 
-#### 2.3 Акцкептирование RSA ключа
+#### 2.3 Акцептирование RSA ключа
+
+После того, как ноды настроены, необходимо провести процедуру акцептирования RSA -ключа миниона на мастере. Без этого шага невозможен обмен данными между мастером и минионом.
+
+Делаем запрос на мастере текущего состояния ключей: 
 
 ```bash
 deploy@lab11-salt-master:~$ sudo salt-key
@@ -105,8 +131,10 @@ Denied Keys:
 Unaccepted Keys:
 rebel_1
 Rejected Keys:
-
 ```
+Видим, что наш минион "rebel_1" был определен мастером, однако ключ пока не акцептирован.
+
+Делаем акцептирование ключа:
 
 ```bash
 deploy@lab11-salt-master:~$ sudo salt-key -a rebel_1
@@ -115,32 +143,37 @@ Unaccepted Keys:
 rebel_1
 Proceed? [n/Y] y
 Key for minion rebel_1 accepted.
-
 ```
+Также возможен вариант автоматического акцептирования ключей минионов с использованием настройки ав конфигурации мастера auto*accept: True. 
+
 ### 2.4 Верификация установки и работы
 
-The final step in the Salt installation process is to verify that the installation was successful by sending a test ping from the Salt master to the connected Salt minions
+После акцептирования ключей  можно проверить работоспособность Salt Stack путем выполнения некоторых команд.
+
+На мастере сделаем запрос версии Salt минионе:
 
 ```bash
 deploy@lab11-salt-master:~$ sudo salt '*' test.version
 rebel_1:
     3006.24
 ```
+Видим, что актуальная версия отобразилась.
 
-На данном этапе установка и конфигурация Salt Stack в рамках системы  двухнодовой схемы Master -> Minion завершена и можно рпиступать к работе.
-
-### 3. Настройка управления конфигурацией nginx и iptables через Salt
-
-Еще раз проверим работу управления:
+Проверим выполнение команды с мастера на минионе:
 
 ```bash
 deploy@lab11-salt-master:~$ sudo salt '*' cmd.run 'hostname'
 rebel_1:
     lab11-salt-minion
-
 ```
+Видим, что команда успешно выполнилась и было возвращено имя хоста миниона
 
-Также проверим сбор фактов, запросом на тип ОС
+
+На данном этапе установка и конфигурация Salt Stack в рамках системы  двухнодовой схемы Master <-> Minion завершена и можно приступать к работе по управлению конфигурацией.
+
+### 3. Настройка управления конфигурацией nginx и iptables через Salt
+
+Проверим сбор фактов(Grains),например,Ю запросом на тип ОС
 
 ```bash
 deploy@lab11-salt-master:~$ sudo salt '*' grains.item os
@@ -151,9 +184,7 @@ rebel_1:
 ``` 
 Grains — это статические данные, которые описывают свойства миньонов. Эти данные автоматом собираются Salt.
 
-
-
-Структура проекта Salt
+Создадим проект на мастере для управления конфигурацией миниона, используя типовую структуру проекта Salt:
 
 ```bash
 deploy@lab11-salt-master:/srv$ tree
@@ -172,7 +203,11 @@ deploy@lab11-salt-master:/srv$ tree
 
 ```
 
-Настройки модуля (состояния) Nginx:
+В данном проекте будут использованы два состояния nginx и firewall, каждое из которых содержит:
+ 1. Файл top.sls, у котором описывается само состояние и необходимые действия 
+ 2. Темплейт-файл .jinja, в котором содержаться конфигурации сервисов 
+
+Настройки состояния Nginx:
 
 ```bash
 #/srv/salt/nginx/init.sls
@@ -201,6 +236,10 @@ nginx_service:
     - watch:
       - file: nginx_config
 ```
+
+В данном состоянии описываем установку пакета Nginx, шаблонизацию его конфигурации (/nginx.conf) и запуск/перезапуск сервиса, в т.ч. после изменения конфигурации.
+
+Сам nginx.conf представлен ниже. В данном случае выполняем динамическое изменение номера порта ("{{ port }}"), на котором слушает Nginx:
 
 ```bash
 #srv/salt/nginx/nginx.conf.jinja
@@ -235,7 +274,7 @@ http {
 
 ```
 
-Настройки модуля (состояния) Firewall:
+Настройки состояния Firewall:
 
 ```bash
 #/srv/salt/firewall/init.sls
@@ -277,6 +316,10 @@ apply_firewall:
       - pkg: iptables_persistent
 ```
 
+Требуем установки iptables-persistent для сохранения правил файрвола, выполняем шаблонизацию правил и запускаем команду применения/сохранения правил.
+
+Правила iptables. Закрываем доступ в цепи INPUT за исключением ssh и порта nginx.
+
 ```bash
 #/srv/salt/firewall/iptables.rules.jinja
 
@@ -311,7 +354,7 @@ apply_firewall:
 COMMIT
 
 ```
-
+Для состояния Firewall будем также использовать Pillar. Pillar - это данные, которые генерируются мастером и передаются миниону, где они могут использоваться в качестве конфигурационных данных
 
 Настройки Pillar (данные) для модуля Firewall:
 
@@ -322,6 +365,8 @@ firewall:
   allowed_ports:
     - 8080  # nginx port
 ```
+В качестве Pillar передадим номер порта, на котором работает nginx. В последствии данный Pillar будет использоваться в конфигурации файрвола.
+
 
 ```bash
 #srv/pillar/top.sls
@@ -329,7 +374,14 @@ base:
   'rebel_1':
     - rebel_1_firewall
 ```
+```bash
+deploy@lab11-salt-master:/srv/pillar$ sudo salt '*' saltutil.refresh_pillar
+rebel_1:
+    True
 
+```
+
+В проекте в top.sls верхнего уровня прописываем два созданных состояния для нашего миниона:
 
 ```bash
 #/srv/salt/top.sls
@@ -340,12 +392,7 @@ base:
     - firewall
 ```
 
-```bash
-deploy@lab11-salt-master:/srv/pillar$ sudo salt '*' saltutil.refresh_pillar
-rebel_1:
-    True
-
-```
+И запускаем команду state.apply для применения данного состояния:
 
 ```bash
 deploy@lab11-salt-master:/srv/pillar$ sudo salt 'rebel_1' state.apply
@@ -469,6 +516,15 @@ May 08 16:42:27 lab11-salt-minion systemd[1]: Started nginx.service - A high per
 
 ```
 
+![](/Lab11_Salt/pics/Nginx_minion.png)
+
+Видим, что наши состояния успешно отработали - пакет nginx установился, правила файрвола применились, nginx доступен на порту 8080.
+
+
+
+### 4. Возможности настройки управления конфигурацией с использованием  pull c миниона
+
+Важной особенностью Salt является возможность инициирования запроса конфигурации от ведомого узла, т.е миниона. Минион сам может запросить актуальную конфигурацию с мастера с использованием команды salt-call
 
 Pull c миниона:
 
@@ -548,8 +604,11 @@ Failed:    0
 ------------
 Total states run:     7
 Total run time: 784.835 ms
-
 ```
+
+Видим, что вывод абсолютно аналогичен тому, что бы было если запуск конфигурации проводился с самого мастера.
+
+Также есть возможность автоматизации процесса заданием шедулера, который будет выполнять запросы конфигурации к мастеру через определенные промежутки времени: 
 
 Автоматический пул
 
@@ -574,6 +633,8 @@ local:
         splay: 3
 ```
 
+Изменив конфигурацию на мастере для nginx (порт 8080 -> 8081), но не запуская apply на самом мастере, минион получил и обновил конфигурацию самостоятельно: 
+
 ```bash
 deploy@lab11-salt-minion:~$ ss -tulpn
 Netid        State         Recv-Q        Send-Q               Local Address:Port                Peer Address:Port        Process        
@@ -585,3 +646,8 @@ tcp          LISTEN        0             511                        0.0.0.0:8081
 tcp          LISTEN        0             4096                    127.0.0.54:53                       0.0.0.0:*                          
 tcp          LISTEN        0             4096                          [::]:22                          [::]:*  
 ```
+
+Выводы:
+
+В данной работе было выполнен тестовый запуск Salt Stack в минималистичном конфиге для демонстрации возможностей системы. Важной особенностью системы по сравнению с Ansible является использование отдельного протокола для обмена данными мастер - минион.
+Это дает, во-первых, увеличение скорости работы (что важно при большом количестве управляемых нод), а также имеет очень важное преимущество в виде возможности миниона самостоятельно вытягивать состояние из мастера. Это может быть полезно в ряде случаев, в т.ч. при использовании схем, где управляемые ноды стоят за NAT или имеют жесткие правила файрвола.
