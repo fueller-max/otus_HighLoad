@@ -468,3 +468,120 @@ May 08 16:42:26 lab11-salt-minion systemd[1]: Starting nginx.service - A high pe
 May 08 16:42:27 lab11-salt-minion systemd[1]: Started nginx.service - A high performance web server and a reverse proxy server.
 
 ```
+
+
+Pull c миниона:
+
+```bash
+deploy@lab11-salt-minion:~$ sudo salt-call state.apply
+
+local:
+----------
+          ID: nginx
+    Function: pkg.installed
+      Result: True
+     Comment: All specified packages are already installed
+     Started: 14:50:28.846475
+    Duration: 21.196 ms
+     Changes:   
+----------
+          ID: nginx_config
+    Function: file.managed
+        Name: /etc/nginx/nginx.conf
+      Result: True
+     Comment: File /etc/nginx/nginx.conf is in the correct state
+     Started: 14:50:28.880754
+    Duration: 17.919 ms
+     Changes:   
+----------
+          ID: nginx_service
+    Function: service.running
+        Name: nginx
+      Result: True
+     Comment: The service nginx is already running
+     Started: 14:50:28.911638
+    Duration: 23.263 ms
+     Changes:   
+----------
+          ID: iptables_persistent
+    Function: pkg.installed
+        Name: iptables-persistent
+      Result: True
+     Comment: All specified packages are already installed
+     Started: 14:50:28.934979
+    Duration: 6.247 ms
+     Changes:   
+----------
+          ID: firewall_dir
+    Function: file.directory
+        Name: /etc/iptables
+      Result: True
+     Comment: The directory /etc/iptables is in the correct state
+     Started: 14:50:28.941285
+    Duration: 0.577 ms
+     Changes:   
+----------
+          ID: firewall_rules
+    Function: file.managed
+        Name: /etc/iptables/rules.v4
+      Result: True
+     Comment: File /etc/iptables/rules.v4 is in the correct state
+     Started: 14:50:28.942048
+    Duration: 139.242 ms
+     Changes:   
+----------
+          ID: apply_firewall
+    Function: cmd.run
+        Name: iptables-restore < /etc/iptables/rules.v4
+netfilter-persistent save
+
+      Result: True
+     Comment: unless condition is true
+     Started: 14:50:29.097818
+    Duration: 576.391 ms
+     Changes:   
+
+Summary for local
+------------
+Succeeded: 7
+Failed:    0
+------------
+Total states run:     7
+Total run time: 784.835 ms
+
+```
+
+Автоматический пул
+
+```bash
+#/etc/salt/minion.d/_schedule.conf
+schedule:
+  __mine_interval: {enabled: true, function: mine.update, jid_include: true, maxrunning: 2,
+    minutes: 60, return_job: false, run_on_start: true}
+  pull_highstate: {function: state.apply, minutes: 30, splay: 3}
+```
+
+```bash
+deploy@lab11-salt-minion:~$ sudo salt-call schedule.list
+local:
+    schedule:
+      pull_highstate:
+        enabled: true
+        function: state.apply
+        minutes: 30
+        name: pull_highstate
+        saved: true
+        splay: 3
+```
+
+```bash
+deploy@lab11-salt-minion:~$ ss -tulpn
+Netid        State         Recv-Q        Send-Q               Local Address:Port                Peer Address:Port        Process        
+udp          UNCONN        0             0                       127.0.0.54:53                       0.0.0.0:*                          
+udp          UNCONN        0             0                    127.0.0.53%lo:53                       0.0.0.0:*                          
+tcp          LISTEN        0             4096                       0.0.0.0:22                       0.0.0.0:*                          
+tcp          LISTEN        0             4096                 127.0.0.53%lo:53                       0.0.0.0:*                          
+tcp          LISTEN        0             511                        0.0.0.0:8081                     0.0.0.0:*                          
+tcp          LISTEN        0             4096                    127.0.0.54:53                       0.0.0.0:*                          
+tcp          LISTEN        0             4096                          [::]:22                          [::]:*  
+```
