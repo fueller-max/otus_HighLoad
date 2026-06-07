@@ -77,7 +77,39 @@ variable vm_configs{
         ip_conf1    =  "ip=10.10.30.50/24"
         network_tag1 =  0
         start_at_node_boot =  true
-      }                 
+      }
+    "lab12-kub-lb-1" = { 
+        vm_id       =  164
+        name        =  "lab12-kub-lb-1"
+        clone       =  "Ubuntu2404-live-server"
+        memory      =  2048
+        cores       =  2
+        sockets     =  2
+        vm_state    =  "running" 
+        bridge0     =  "vmbr0"
+        ip_conf0    =  "ip=192.168.70.51/24,gw=192.168.70.1"
+        network_tag0 =  0
+        bridge1     =  "vmbr3"
+        ip_conf1    =  "ip=10.10.30.51/24"
+        network_tag1 =  0
+        start_at_node_boot =  true
+      } 
+    "lab12-kub-lb-2" = { 
+        vm_id       =  165
+        name        =  "lab12-kub-lb-5"
+        clone       =  "Ubuntu2404-live-server"
+        memory      =  2048
+        cores       =  2
+        sockets     =  2
+        vm_state    =  "running" 
+        bridge0     =  "vmbr0"
+        ip_conf0    =  "ip=192.168.70.55/24,gw=192.168.70.1"
+        network_tag0 =  0
+        bridge1     =  "vmbr3"
+        ip_conf1    =  "ip=10.10.30.55/24"
+        network_tag1 =  0
+        start_at_node_boot =  true
+      }                            
   }   
 }
 
