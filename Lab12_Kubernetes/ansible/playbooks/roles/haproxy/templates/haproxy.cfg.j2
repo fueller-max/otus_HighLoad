@@ -1,0 +1,39 @@
+global
+    log /dev/log local0 warning
+    maxconn 4000
+    user haproxy
+    group haproxy
+    daemon
+    log-send-hostname
+    spread-checks 3
+
+defaults
+    log global
+    mode tcp
+    # Set long timeouts for persistent connections (kubectl exec/logs)
+    timeout connect 10s
+    timeout client 86400s
+    timeout server 86400s
+
+frontend kubernetes-api
+    bind *:6443
+    mode tcp
+    description "Kubernetes API Load Balancer"
+    default_backend kubernetes-api-backend
+
+backend kubernetes-api-backend
+    mode tcp
+    option tcp-check
+    balance roundrobin
+    {% set masters = groups['kub_master_nodes'] | map('extract', hostvars, 'cluster_net_addr') | list %}
+    server master-node-1 {{ masters[0] }}:6443 check
+    server master-node-2 {{ masters[1] }}:6443 check
+    server master-node-3 {{ masters[2] }}:6443 check
+
+listen stats
+    bind :8443
+    stats enable
+    mode http
+    stats uri /stats
+    stats realm Haproxy\ Statistics
+    stats auth admin:strongpassword

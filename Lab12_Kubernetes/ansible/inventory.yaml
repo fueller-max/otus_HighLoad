@@ -11,6 +11,19 @@ all:
         lab12-kub-master-3:
           ansible_host: 192.168.70.50
           cluster_net_addr: 10.10.30.50
+
+     kub_loadbalancers_nodes:
+       hosts:
+         lab12-kub-lb-1:
+           ansible_host: 192.168.70.51
+           cluster_net_addr: 10.10.30.51
+           vrrp_role: "master"
+           vrrp_net_addr: 10.10.30.51
+         lab12-kub-lb-2:
+           ansible_host: 192.168.70.52
+           cluster_net_addr: 10.10.30.52
+           vrrp_role: "slave"
+           vrrp_net_addr: 10.10.30.52       
                    
   vars:
       ansible_user: deploy

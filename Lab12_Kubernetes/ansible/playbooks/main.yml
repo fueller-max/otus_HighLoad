@@ -1,3 +1,10 @@
+- name: Install & Provision Load Balancer for API Kubernetes  
+  hosts: kub_loadbalancers_nodes
+  become: true
+  roles:
+        - role: haproxy
+        - role: keepalived
+      
 - name: Install & Provision Kubernetes Cluster (Master Nodes) 
   hosts: kub_master_nodes
   become: true

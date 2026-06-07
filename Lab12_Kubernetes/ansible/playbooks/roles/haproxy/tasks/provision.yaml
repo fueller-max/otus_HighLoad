@@ -1,0 +1,20 @@
+- name: Ensure haproxy group exists
+  ansible.builtin.group:
+    name: haproxy
+    state: present
+
+- name: Create the haproxy user a
+  ansible.builtin.user:
+    name: haproxy
+    state: present
+    group: haproxy
+
+- name: Render config
+  ansible.builtin.template:
+      src:  templates/haproxy.cfg.j2      
+      dest: /etc/haproxy/haproxy.cfg
+      owner: root                           
+      group: root                           
+      mode: '0644'
+  notify: Restart haproxy    
+  tags: [always]  

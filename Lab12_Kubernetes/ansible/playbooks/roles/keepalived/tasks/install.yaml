@@ -1,0 +1,11 @@
+- name: Update package cache
+  apt:
+    update_cache: yes
+  tags: always
+
+- name: Install Keepalived
+  ansible.builtin.apt:
+    name:
+      - keepalived
+    state: present    
+  tags: always

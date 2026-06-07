@@ -1,0 +1,13 @@
+- name: Enable kernel interface binding
+  ansible.builtin.shell: |
+      sysctl -w net.ipv4.ip_nonlocal_bind=1       
+ 
+- name: Render config
+  ansible.builtin.template:
+      src:  templates/keepalived.conf.j2       
+      dest: /etc/keepalived/keepalived.conf  
+      owner: root                           
+      group: root                           
+      mode: '0644'
+  notify: Restart keepalived    
+  tags: [always]  
