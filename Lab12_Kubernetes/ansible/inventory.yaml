@@ -1,0 +1,18 @@
+all:
+  children:
+     kub_master_nodes:
+       hosts:
+        lab12-kub-master-1:
+          ansible_host: 192.168.70.48
+          cluster_net_addr: 10.10.30.48
+        lab12-kub-master-2:
+          ansible_host: 192.168.70.49
+          cluster_net_addr: 10.10.30.49
+        lab12-kub-master-3:
+          ansible_host: 192.168.70.50
+          cluster_net_addr: 10.10.30.50
+                   
+  vars:
+      ansible_user: deploy
+      ansible_connection: ssh 
+      ansible_python_interpreter : /usr/bin/python3.12   

@@ -1,0 +1,16 @@
+{# The value '{{hostname}}' will be replaced with the local-hostname -#}
+127.0.1.1 {{ ansible_facts['hostname'] }} {{ ansible_facts['hostname'] }}
+127.0.0.1 localhost
+
+
+{% for host in groups['kub_master_nodes'] %}
+{% if host != inventory_hostname %}
+{{ hostvars[host]['cluster_net_addr'] }} {{ host }}
+{% endif %}
+{% endfor %}
+
+
+# The following lines are desirable for IPv6 capable hosts
+::1 localhost ip6-localhost ip6-loopback
+ff02::1 ip6-allnodes
+ff02::2 ip6-allrouters

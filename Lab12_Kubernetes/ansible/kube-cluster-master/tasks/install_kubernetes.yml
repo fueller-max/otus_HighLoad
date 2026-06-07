@@ -1,0 +1,58 @@
+- name: Update package cache
+  apt:
+    update_cache: yes
+  tags: always
+
+- name: Install packages needed to use the Kubernetes
+  ansible.builtin.apt:
+      name:
+        - apt-transport-https
+        - ca-certificates
+        - curl
+        - gpg
+      state: present    
+  tags: always
+
+- name: Download the public signing key 
+  ansible.builtin.shell: y | curl -fsSL https://pkgs.k8s.io/core:/stable:/"{{kube_version}}"/deb/Release.key | sudo gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+  register: kubernetes_sign
+  failed_when: kubernetes_sign.rc != 0
+  tags: always 
+
+- name: Add Kubernetes apt repository
+  ansible.builtin.shell: echo 'deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/"{{kube_version}}"/deb/ /' | sudo tee /etc/apt/sources.list.d/kubernetes.list
+  register: kubernetes_repo
+  failed_when: kubernetes_repo.rc != 0
+  tags: always   
+
+- name: Update package cache
+  apt:
+    update_cache: yes
+  tags: always
+
+- name: Install Kubernetes infra
+  ansible.builtin.apt:
+      name:
+        - kubelet
+        - kubeadm
+        - kubectl
+      state: present    
+  tags: always  
+
+- name: Hold packages for update
+  ansible.builtin.dpkg_selections:
+    name: "{{ item }}"
+    selection: hold
+  loop:
+    - kubelet
+    - kubeadm
+    - kubectl
+  tags: always  
+
+- name: Enable and start kubelet
+  ansible.builtin.systemd:
+    name: kubelet
+    state: started
+    enabled: yes
+  register: kubelet_status
+  tags: always   

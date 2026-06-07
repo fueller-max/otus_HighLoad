@@ -1,0 +1,6 @@
+- name: Install & Provision Kubernetes Cluster (Master Nodes) 
+  hosts: kub_master_nodes
+  become: true
+  roles:
+        - role: kube-cluster-master
+      
