@@ -3,7 +3,7 @@
     name: haproxy
     state: present
 
-- name: Create the haproxy user a
+- name: Create the haproxy user 
   ansible.builtin.user:
     name: haproxy
     state: present

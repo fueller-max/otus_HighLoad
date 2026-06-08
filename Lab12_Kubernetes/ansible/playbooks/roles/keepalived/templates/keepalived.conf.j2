@@ -42,7 +42,7 @@ vrrp_instance ha_proxy {
     
 
     virtual_ipaddress {
-        {{ vip }} dev eth1
+        {{ balancer_vip }} dev eth1
     } track_script {
         chk_haproxy
     }

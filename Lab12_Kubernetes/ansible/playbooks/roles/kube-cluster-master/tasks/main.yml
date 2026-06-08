@@ -19,4 +19,8 @@
   tags:
     - install_kubernetes     
 
-     
+- name: Provision Kubernetes infrastructure. Setup Control Plane cluster
+  ansible.builtin.include_tasks: 
+    file: provision.yml   
+  tags:
+    - provision         
