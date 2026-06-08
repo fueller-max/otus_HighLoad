@@ -1,0 +1,7 @@
+- name: Join the control-plane nodes
+  ansible.builtin.shell: |
+    kubeadm join "{{ balancer_vip }}":6443 --token "{{ token }}" --discovery-token-ca-cert-hash "{{ discovery_token_ca_cert_hash }}"
+  tags: [always] 
+
+
+  

@@ -1,0 +1,42 @@
+- name: Download the public signing key 
+  ansible.builtin.shell: curl -fsSL "{{kube_yandex_mirror}}"/Release.key | gpg --dearmor -o /etc/apt/keyrings/kubernetes-yandex-keyring.gpg --yes
+  register: kubernetes_sign
+  failed_when: kubernetes_sign.rc != 0
+  tags: always 
+
+- name: Add Kubernetes apt repository
+  ansible.builtin.shell: echo 'deb [signed-by=/etc/apt/keyrings/kubernetes-yandex-keyring.gpg] {{kube_yandex_mirror}}  /' | tee /etc/apt/sources.list.d/kubernetes-yandex.list
+  register: kubernetes_repo
+  failed_when: kubernetes_repo.rc != 0
+  tags: always     
+
+- name: Update repo indexes  
+  ansible.builtin.apt:
+    update_cache: yes
+    cache_valid_time: 0  
+  tags: always    
+
+- name: Install Kubernetes infra
+  ansible.builtin.apt:
+      name:
+        - kubelet
+        - kubeadm
+      state: present    
+  tags: always  
+
+- name: Hold packages for update
+  ansible.builtin.dpkg_selections:
+    name: "{{ item }}"
+    selection: hold
+  loop:
+    - kubelet
+    - kubeadm
+  tags: always  
+
+- name: Enable and start kubelet
+  ansible.builtin.systemd:
+    name: kubelet
+    state: started
+    enabled: yes
+  register: kubelet_status
+  tags: always 

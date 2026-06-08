@@ -1,0 +1,26 @@
+#SPDX-License-Identifier: MIT-0
+---
+# tasks file for kube-workers
+- name: Provision nodes before Kubernetes installation
+  ansible.builtin.include_tasks: 
+    file: pre_provision.yml
+  tags:
+    - pre_provision 
+
+- name: Install Kubernetes infrastructure. Containerd
+  ansible.builtin.include_tasks: 
+    file: install_containerd.yml   
+  tags:
+    - install_containerd  
+
+- name: Install Kubernetes infrastructure. Kubeadm, Kubelet
+  ansible.builtin.include_tasks: 
+    file: install_kubernetes_ya.yml   
+  tags:
+    - install_kubernetes       
+
+- name: Provision Kubernetes infrastructure. Join workers to control-plane
+  ansible.builtin.include_tasks: 
+    file: provision.yml   
+  tags:
+    - provision   

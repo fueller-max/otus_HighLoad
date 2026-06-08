@@ -10,4 +10,10 @@
   become: true
   roles:
         - role: kube-cluster-master
+
+- name: Install & Provision Kubernetes Workers 
+  hosts: kub_worker_nodes
+  become: true
+  roles:
+        - role: kube-workers        
       

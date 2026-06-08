@@ -96,20 +96,52 @@ variable vm_configs{
       } 
     "lab12-kub-lb-2" = { 
         vm_id       =  165
-        name        =  "lab12-kub-lb-5"
+        name        =  "lab12-kub-lb-2"
         clone       =  "Ubuntu2404-live-server"
         memory      =  2048
         cores       =  2
         sockets     =  2
         vm_state    =  "running" 
         bridge0     =  "vmbr0"
-        ip_conf0    =  "ip=192.168.70.55/24,gw=192.168.70.1"
+        ip_conf0    =  "ip=192.168.70.52/24,gw=192.168.70.1"
         network_tag0 =  0
         bridge1     =  "vmbr3"
-        ip_conf1    =  "ip=10.10.30.55/24"
+        ip_conf1    =  "ip=10.10.30.52/24"
         network_tag1 =  0
         start_at_node_boot =  true
-      }                            
+      }
+    "lab12-kub-worker-1" = { 
+        vm_id       =  166
+        name        =  "lab12-kub-worker-1"
+        clone       =  "Ubuntu2404-live-server"
+        memory      =  2048
+        cores       =  2
+        sockets     =  2
+        vm_state    =  "running" 
+        bridge0     =  "vmbr0"
+        ip_conf0    =  "ip=192.168.70.53/24,gw=192.168.70.1"
+        network_tag0 =  0
+        bridge1     =  "vmbr3"
+        ip_conf1    =  "ip=10.10.30.53/24"
+        network_tag1 =  0
+        start_at_node_boot =  true
+      }  
+    "lab12-kub-worker-2" = { 
+        vm_id       =  167
+        name        =  "lab12-kub-worker-2"
+        clone       =  "Ubuntu2404-live-server"
+        memory      =  2048
+        cores       =  2
+        sockets     =  2
+        vm_state    =  "running" 
+        bridge0     =  "vmbr0"
+        ip_conf0    =  "ip=192.168.70.54/24,gw=192.168.70.1"
+        network_tag0 =  0
+        bridge1     =  "vmbr3"
+        ip_conf1    =  "ip=10.10.30.54/24"
+        network_tag1 =  0
+        start_at_node_boot =  true
+      }  
   }   
 }
 

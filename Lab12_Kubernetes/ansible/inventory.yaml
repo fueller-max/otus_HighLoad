@@ -23,8 +23,17 @@ all:
            ansible_host: 192.168.70.52
            cluster_net_addr: 10.10.30.52
            vrrp_role: "slave"
-           vrrp_net_addr: 10.10.30.52       
-                   
+           vrrp_net_addr: 10.10.30.52
+
+     kub_worker_nodes:
+       hosts:
+        lab12-kub-worker-1:
+          ansible_host: 192.168.70.53
+          cluster_net_addr: 10.10.30.53
+        lab12-kub-worker-2:
+          ansible_host: 192.168.70.54
+          cluster_net_addr: 10.10.30.54    
+                          
   vars:
       ansible_user: deploy
       ansible_connection: ssh 
