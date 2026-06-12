@@ -319,7 +319,7 @@ kind: Ingress
 metadata:
   name: web-app-ingress
 spec:
-  ingressClassName: nginx  # This replaces the deprecated annotation
+  ingressClassName: nginx  
   rules:
   - host: app.lab.local
     http:
@@ -356,5 +356,67 @@ URI: /
 Request ID: 040fd6a83cc04ab1d05d7ab9a99fa872
 
 ```
-#####################3##
+########################
 
+
+##################BACKUP##################################################
+
+```bash
+deploy@lab12-kub-master-1:~$ sudo apt-get install etcd-client 
+```
+
+
+```bash
+#!/bin/bash
+
+# Configuration
+BACKUP_DIR="/var/lib/etcd-backups"
+SNAPSHOT_FILE="${BACKUP_DIR}/etcd-snapshot-$(date +%Y-%m-%d-%H%M%S).db"
+
+# Create backup directory if it doesn't exist
+sudo mkdir -p ${BACKUP_DIR}
+
+# Execute etcdctl snapshot using the cluster's internal certificates
+sudo ETCDCTL_API=3 etcdctl \
+  --endpoints=https://127.0.0.1:2379 \
+  --cacert=/etc/kubernetes/pki/etcd/ca.crt \
+  --cert=/etc/kubernetes/pki/etcd/server.crt \
+  --key=/etc/kubernetes/pki/etcd/server.key \
+  snapshot save ${SNAPSHOT_FILE}
+
+# Verify the backup file integrity
+sudo ETCDCTL_API=3 etcdctl --write-out=table snapshot status ${SNAPSHOT_FILE}
+
+# Clean up backups older than 7 days to save disk space
+sudo find ${BACKUP_DIR} -type f -name "etcd-snapshot-*.db" -mtime +7 -delete
+```
+
+```bash
+deploy@lab12-kub-master-1:~$ ./etcd_backup.sh
+{"level":"info","ts":1781257799.3373735,"caller":"snapshot/v3_snapshot.go:119","msg":"created temporary db file","path":"/var/lib/etcd-backups/etcd-snapshot-2026-06-12-094959.db.part"}
+{"level":"info","ts":"2026-06-12T09:49:59.342801Z","caller":"clientv3/maintenance.go:212","msg":"opened snapshot stream; downloading"}
+{"level":"info","ts":1781257799.3437097,"caller":"snapshot/v3_snapshot.go:127","msg":"fetching snapshot","endpoint":"https://127.0.0.1:2379"}
+{"level":"info","ts":"2026-06-12T09:49:59.423844Z","caller":"clientv3/maintenance.go:220","msg":"completed snapshot read; closing"}
+{"level":"info","ts":1781257799.532812,"caller":"snapshot/v3_snapshot.go:142","msg":"fetched snapshot","endpoint":"https://127.0.0.1:2379","size":"4.9 MB","took":0.195331536}
+{"level":"info","ts":1781257799.5330355,"caller":"snapshot/v3_snapshot.go:152","msg":"saved","path":"/var/lib/etcd-backups/etcd-snapshot-2026-06-12-094959.db"}
+Snapshot saved at /var/lib/etcd-backups/etcd-snapshot-2026-06-12-094959.db
++----------+----------+------------+------------+
+|   HASH   | REVISION | TOTAL KEYS | TOTAL SIZE |
++----------+----------+------------+------------+
+| a7498c83 |   880493 |       1395 |     4.9 MB |
++----------+----------+------------+------------+
+deploy@lab12-kub-master-1:~$ ls /var/lib/etcd-backups/
+etcd-snapshot-2026-06-12-094959.db
+```
+
+```bash
+systemctl stop kubelet
+etcdctl snapshot restore
+```
+
+
+```bash
+kubectl get all --all-namespaces -o yaml >> kub_dump.yaml
+
+```
+##########################################################################
