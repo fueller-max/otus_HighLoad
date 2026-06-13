@@ -1,49 +1,49 @@
-# - name: Initialize the First Control Plane Node 
-#   ansible.builtin.shell: |
-#      kubeadm init --control-plane-endpoint="{{ balancer_vip }}:6443" --pod-network-cidr="{{pod_network_cidr}}" --upload-certs
-#   register: enroll_token
-#   run_once: true    
-#   delegate_to:  "{{ groups.kub_master_nodes | first }}"
-#   tags: [always] 
+- name: Initialize the First Control Plane Node 
+  ansible.builtin.shell: |
+     kubeadm init --control-plane-endpoint="{{ balancer_vip }}:6443" --pod-network-cidr="{{pod_network_cidr}}" --upload-certs
+  register: enroll_token
+  run_once: true    
+  delegate_to:  "{{ groups.kub_master_nodes | first }}"
+  tags: [always] 
 
-# - name: Print enrollment token
-#   ansible.builtin.debug:
-#     var: enroll_token.stdout
-#   run_once: true    
-#   delegate_to:  "{{ groups.kub_master_nodes  | first }}" 
-#   tags: [always]   
+- name: Print enrollment token
+  ansible.builtin.debug:
+    var: enroll_token.stdout
+  run_once: true    
+  delegate_to:  "{{ groups.kub_master_nodes  | first }}" 
+  tags: [always]   
 
-# - name: Check if the configuration file for local admin access exists
-#   ansible.builtin.stat:
-#     path: /home/"{{ deploy_user }}"
-#   register: config_stat
-#   run_once: true    
-#   delegate_to:  "{{ groups.kub_master_nodes | first }}"
-#   tags: [always] 
+- name: Check if the configuration file for local admin access exists
+  ansible.builtin.stat:
+    path: /home/"{{ deploy_user }}"
+  register: config_stat
+  run_once: true    
+  delegate_to:  "{{ groups.kub_master_nodes | first }}"
+  tags: [always] 
 
-# - name: Print enrollment token
-#   ansible.builtin.debug:
-#     var: config_stat
-#   run_once: true    
-#   delegate_to:  "{{ groups.kub_master_nodes  | first }}" 
-#   tags: [always]   
+- name: Print enrollment token
+  ansible.builtin.debug:
+    var: config_stat
+  run_once: true    
+  delegate_to:  "{{ groups.kub_master_nodes  | first }}" 
+  tags: [always]   
 
-# - name: Configure local admin access for deploy user 
-#   ansible.builtin.shell: |
-#     mkdir -p /home/"{{ deploy_user }}"/.kube
-#     cp -i /etc/kubernetes/admin.conf /home/"{{ deploy_user }}"/.kube/config
-#     chown "{{ deploy_user }}":"{{ deploy_user }}" /home/"{{ deploy_user }}"/.kube/config
-#   when: not config_stat.stat.exists  
-#   run_once: true    
-#   delegate_to:  "{{ groups.kub_master_nodes | first }}"
-#   tags: [always] 
+- name: Configure local admin access for deploy user 
+  ansible.builtin.shell: |
+    mkdir -p /home/"{{ deploy_user }}"/.kube
+    cp -i /etc/kubernetes/admin.conf /home/"{{ deploy_user }}"/.kube/config
+    chown "{{ deploy_user }}":"{{ deploy_user }}" /home/"{{ deploy_user }}"/.kube/config
+  when: not config_stat.stat.exists  
+  run_once: true    
+  delegate_to:  "{{ groups.kub_master_nodes | first }}"
+  tags: [always] 
 
-# - name: Apply the Flannel Network Plugin
-#   ansible.builtin.shell: |
-#     kubectl apply -f https://github.com/flannel-io/flannel/releases/latest/download/kube-flannel.yml
-#   run_once: true    
-#   delegate_to:  "{{ groups.kub_master_nodes | first }}"
-#   tags: [always]   
+- name: Apply the Flannel Network Plugin
+  ansible.builtin.shell: |
+    kubectl apply -f https://github.com/flannel-io/flannel/releases/latest/download/kube-flannel.yml
+  run_once: true    
+  delegate_to:  "{{ groups.kub_master_nodes | first }}"
+  tags: [always]   
 
 - name: Join the Other Two Control Plane Nodes
   ansible.builtin.shell: |

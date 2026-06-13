@@ -32,7 +32,6 @@
   ansible.builtin.shell: containerd config default > /etc/containerd/config.toml
   register: containerd_configuration
   failed_when: containerd_configuration.rc != 0
-  ignore_errors: yes
   tags: always  
 
 - name: Enable SystemdCgroup in containerd config (optimization for Kubernetes)
