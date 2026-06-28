@@ -924,7 +924,7 @@ data:
 
     vault {
       # Uses the cross-namespace endpoint pointing to your Vault cluster
-      address = "http://vault-internal.vault.svc.cluster.local"
+      address = "http://vault-internal.vault.svc.cluster.local:8200"
     }
 
     template {
@@ -936,3 +936,4 @@ data:
       EOH
     }
 ```
+
