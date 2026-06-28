@@ -60,7 +60,7 @@ vault token create -policy="wordpress-read" -ttl=72h
 ```bash
 Key                  Value
 ---                  -----
-token                hvs.CAESIFKg8cs72iMG-z_wSwwoUl36P0dlwQRjNHxZlTNXBUWvGh4KHGh2cy5hVGdCTUdzOWNpWVRIc3VtSEJDTEJLV1o
+token                *****
 token_accessor       Gxx9i2VzH7CK4ICDma8kYFeg
 token_duration       72h
 token_renewable      true
@@ -84,7 +84,7 @@ role_id    d8638246-8d5e-918f-0c6d-0b6180f86e4b
 
 kubectl create secret generic vault-sync-token \
   -n wordpress \
-  --from-literal=token="hvs.CAESIFKg8cs72iMG-z_wSwwoUl36P0dlwQRjNHxZlTNXBUWvGh4KHGh2cy5hVGdCTUdzOWNpWVRIc3VtSEJDTEJLV1o"
+  --from-literal=token="*******o"
 
 ```
 
@@ -220,7 +220,7 @@ spec:
       restartPolicy: Always
 ```
 
-
+```yaml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -254,11 +254,8 @@ spec:
       ports:
       - containerPort: 80
         name: wordpress
-
-
-
-        ```yaml
-        apiVersion: v1
+---
+apiVersion: v1
 kind: Service
 metadata:
   name: wordpress-mysql
@@ -301,10 +298,10 @@ spec:
       ports:
       - containerPort: 3306
         name: mysql
-        ```
+```
 
-    ```yaml
-    apiVersion: v1
+```yaml
+apiVersion: v1
 kind: Secret
 metadata:
   name: mysql-pass
@@ -312,4 +309,4 @@ type: Opaque
 stringData:
   # Replace with a strong password of your choice
   password: SuperSecurePassword123!
-    ```    
+```    
