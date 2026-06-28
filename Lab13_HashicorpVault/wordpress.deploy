@@ -57,17 +57,6 @@ vault token create -policy="wordpress-read" -ttl=72h
 
 ```
 
-```bash
-Key                  Value
----                  -----
-token                *****
-token_accessor       Gxx9i2VzH7CK4ICDma8kYFeg
-token_duration       72h
-token_renewable      true
-token_policies       ["default" "wordpress-read"]
-identity_policies    []
-policies             ["default" "wordpress-read"]
-```
 
 Получаем роль iD  
 
