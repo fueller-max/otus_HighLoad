@@ -103,7 +103,7 @@ deploy@lab12-kub-master-1:~/vault$ kubectl apply -f vault-config.yaml
 configmap/vault-config created
 ```
 
-* 1.1.4 Создем Service для получения стабильного сетевого end-point для внуренней коммуникации и ui.
+* 1.1.4 Создем Service для получения стабильного сетевого end-point для внутренней коммуникации и ui.
 
 ```yaml
 #vault-service.yaml
@@ -213,7 +213,7 @@ vault-pv-2       500Mi      RWO            Retain           Available           
 ```
 
 * 1.1.6 Выполняем деплой StatefulSet для запуска подов vault. 
-Устанавливаем кол-во подов равным 3, также включаем podAntiAffinity, чтобы избежать ситуации, когды все поды будут размещены на одной воркер-ноде. Используем настройку preferredDuringSchedulingIgnoredDuringExecution, которая по возможности раскидает поды по доступным воркер нодам. В нашем случае (т.к. воркер-ноды 2) два пода займут одну ноду. 
+Устанавливаем кол-во подов равным 3, также включаем podAntiAffinity, чтобы избежать ситуации, когды все поды будут размещены на одной воркер-ноде. Также используем настройку preferredDuringSchedulingIgnoredDuringExecution, которая по возможности раскидает поды по доступным воркер нодам. В нашем случае (т.к. воркер-ноды 2) два пода займут одну ноду. 
 
 ```yaml
 #vault-ha-statefulset.yaml
@@ -317,10 +317,9 @@ vault-2   1/1     Running   0          22s   10.244.4.24   lab12-kub-worker-2   
 
 * 1.2 Инициализация и сборка HA кластера Vault.
 
-* 1.2.1 Инициализация первой ноды и получание мастер-ключей
+* 1.2.1 Инициализация первой ноды и получение мастер-ключей
 
 ```bash
-
 deploy@lab12-kub-master-1:~/vault$ kubectl exec -it vault-0 -n vault -- vault operator init
 Unseal Key 1: KC+7FF**************************************
 Unseal Key 2: HSRhSi**************************************
@@ -329,17 +328,6 @@ Unseal Key 4: 2nrY9e**************************************
 Unseal Key 5: N21PZB**************************************
 
 Initial Root Token: hvs.SO**********************
-
-Vault initialized with 5 key shares and a key threshold of 3. Please securely
-distribute the key shares printed above. When the Vault is re-sealed,
-restarted, or stopped, you must supply at least 3 of these keys to unseal it
-before it can start servicing requests.
-
-Vault does not store the generated root key. Without at least 3 keys to
-reconstruct the root key, Vault will remain permanently sealed!
-
-It is possible to generate new unseal keys, provided you have a quorum of
-existing unseal keys shares. See "vault operator rekey" for more information.
 
 ```
 
@@ -393,12 +381,9 @@ deploy@lab12-kub-master-1:~/vault$ kubectl exec -it vault-2 -n vault -- vault op
 
 ```bash
 # Login
-kubectl exec -it vault-0 -n vault -- vault login <YOUR_ROOT_TOKEN>
-
-# Check Raft peer list
-kubectl exec -it vault-0 -n vault -- vault operator raft list-peers
-
+kubectl exec -it vault-0 -n vault -- vault login hvs.SO**********************
 ```
+Видим лидера кластера - vault-0 и два follower`а - vault-1  и vault-2:
 
 ```bash
 deploy@lab12-kub-master-1:~/vault$ kubectl exec -it vault-0 -n vault -- vault operator raft list-peers
@@ -409,7 +394,7 @@ vault-1    vault-1.vault-internal.vault.svc.cluster.local:8201    follower    tr
 vault-2    vault-2.vault-internal.vault.svc.cluster.local:8201    follower    true
 ```
 
-*1.3 Установка Ingress контроллера
+* 1.3 Установка Ingress контроллера
 
 Для свободного доступа к UI кластера добавим Ingress контроллер.
 
@@ -425,7 +410,7 @@ metadata:
 spec:
   ingressClassName: nginx  
   rules:
-  - host: vault.lab.local  # <--- preferred lab domain
+  - host: vault.lab.local  # <--- lab domain
     http:
       paths:
       - path: /
@@ -437,17 +422,25 @@ spec:
               number: 8200
 ```
 
+Проверим, что Vault стартовал и UI доступен:
+
+![](/Lab13_HashicorpVault/pics/Vault_started.jpg)
+
 
 ### 2. Деплой веб сервиса (Wordpress)
 
-Создаем отдельный namespace 
+В качестве веб сервиса  развернем тестовый Wordpress, где секреты к базе данных будут меняться динамически.
+
+* 2.1 Создаем отдельный namespace 
 
 ```bash
 deploy@lab12-kub-master-1:~/wordpress$ kubectl create namespace wordpress
 namespace/wordpress created
 ```
 
-2.1 Деплой MySQL
+* 2.2 Деплой MySQL
+
+Развернем сервис MySQL на базе контейнера  MariaDB:
 
 ```yaml
 #wordpress-mysql.yaml
@@ -508,11 +501,26 @@ spec:
               cpu: "500m"    
 ```
 
-2.2 Configure the Dynamic Rotation Role in Vault
-
+Проверим, что под и сервис( Headless ) стартанул и работает:
 
 ```bash
-# 1. Enable the database secrets engine (if you haven't already)
+deploy@lab12-kub-master-1:~/vault$ kubectl get pods -n wordpress
+NAME                               READY   STATUS    RESTARTS   AGE
+
+wordpress-mysql-8664668fc6-62slq   1/1     Running   0          10m
+```
+
+```bash
+deploy@lab12-kub-master-1:~/vault$ kubectl get svc -n wordpress -o wide
+NAME              TYPE           CLUSTER-IP     EXTERNAL-IP      PORT(S)        AGE   SELECTOR
+wordpress-mysql   ClusterIP      None           <none>           3306/TCP       10m   app=wordpress,tier=mysql
+```
+
+* 2.3 Настройка динамического обновления пароля в БД в Vault 
+
+Логинимся на мастер ноде Vault и в консольном режиме задаем параметры для подключения к БД и интервал смены пароля (выберем 5 мин)
+```bash
+# 1. Enable the database secrets engine 
 vault secrets enable database
 
 # 2. Configure Vault with root connection details to MariaDB across namespaces
@@ -548,12 +556,11 @@ Key                Value
 lease_id           database/creds/wordpress-role/bZGxHXDHbMrJdDYZVnJaApge
 lease_duration     4m59s
 lease_renewable    true
-password           1T-BIuHohtR7vB2KPb3u
+password           1T-BI********************
 username           v-root-wordpress--0ohb7PfqY2XrT9
 ```
 
- Run a temporary client pod to connect to your MariaDB service
-
+Запустим временный под для подключения к базе и проверке пользователей:
 ```bash
 deploy@lab12-kub-master-1:~/vault$ 
 kubectl run mariadb-client --rm -it --image=mariadb:10.6 -n wordpress -- \
@@ -571,7 +578,7 @@ kubectl run mariadb-client --rm -it --image=mariadb:10.6 -n wordpress -- \
 | root                             | localhost |
 ```
 
-После >5 пользователь в базе пропал:
+После > 5 мин  пользователь в базе пропал:
 
 ```bash
 deploy@lab12-kub-master-1:~/vault$ kubectl run mariadb-client --rm -it --image=mariadb:10.6 -n wordpress --   mysql -h wordpress-mysql -u root -p"super-secure-password" -e "SELECT User, Host FROM mysql.user;"
@@ -598,7 +605,7 @@ Key                Value
 lease_id           database/creds/wordpress-role/Flmpd7BDwa5SdhUOpzSx5JWh
 lease_duration     4m59s
 lease_renewable    true
-password           Wo6bzB6RKDSf-KsRRidf
+password           Wo6bz***************
 username           v-root-wordpress--Jkit7xnB8ldPlS
 ```
 
@@ -617,9 +624,15 @@ deploy@lab12-kub-master-1:~/vault$ kubectl run mariadb-client --rm -it --image=m
 | root                             | localhost |
 +----------------------------------+-----------+
 ```
+Видим, что при запросах у Vault генерируется связка нового пароль/пользователь для подключеня к базе. 
 
+![](/Lab13_HashicorpVault/pics/Vault_wordpress_db.jpg)
 
-Deploy WordPress
+* 2.3 Deploy WordPress
+
+Для того, чтобы передавать меняющиеся секреты от Vault будем использовать технологию Vault Injector. Инжектор позволяет динамически мапить секреты на shared volume и под приложения может их ипользовать без знания и прямого взаимодействия с Vault. Сам по себе Vault Injector не включен по умолчанию в Vault и требуется отдельная установка. Здесь ее приводить не будем.
+Представим манифест для деплоя контейнера WordPress с использованием  Vault Injector:
+
 
 ```yaml
 #wordpress-app.yaml
@@ -682,10 +695,10 @@ spec:
         app: wordpress
         tier: frontend
       annotations:
-        vault.hashicorp.com/agent-inject: "true"      # Tells Kubernetes to inject the Vault sidecar proxy container
-        vault.hashicorp.com/role: "wordpress-role"    #  Binds the pod to your pre-configured Vault authorization role
+        vault.hashicorp.com/agent-inject: "true"         # Tells Kubernetes to inject the Vault sidecar proxy container
+        vault.hashicorp.com/role: "wordpress-role"       #  Binds the pod to your pre-configured Vault authorization role
         vault.hashicorp.com/auth-path: "auth/kubernetes" # Instructs the sidecar on where to find the Kubernetes auth engine path
-        vault.hashicorp.com/proxy-address: "http://vault.vault.svc.cluster.local" #Maps the route out of the 'wordpress' namespace directly to the 'vault' cluster 
+        vault.hashicorp.com/proxy-address: "http://vault-internal.vault.svc.cluster.local" #Maps the route out of the 'wordpress' namespace directly to the 'vault' cluster 
         vault.hashicorp.com/secret-db-creds: "database/creds/wordpress-role"
         vault.hashicorp.com/template-db-creds: |
           {{- with secret "database/creds/wordpress-role" -}}
@@ -735,7 +748,7 @@ spec:
 ```
 
 
-Ingress
+Также запустим Ingress для доступа к сервису извне кластера:
 
 ```yaml
 #wordpress-ingress.yaml
@@ -760,180 +773,29 @@ spec:
                   number: 80
 ```
 
-альтернативный вариант деплоя.
 
-```yaml
-#wordpress-app.yaml
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: wordpress-sa
-  namespace: wordpress
----
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: wp-config-template
-  namespace: wordpress
-data:
-  wp-vault-config.php: |
-    <?php
-    // Dynamically read the file generated/rotated by the Vault agent sidecar
-    $vault_file = '/vault/secrets/db-creds';
-    if (file_exists($vault_file)) {
-        $lines = file($vault_file, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-        foreach ($lines as $line) {
-            if (strpos($line, '=') !== false) {
-                list($key, $value) = explode('=', $line, 2);
-                define(trim($key), trim($value));
-            }
-        }
-    }
-    if (!defined('DB_USER')) define('DB_USER', 'fallback');
-    if (!defined('DB_PASSWORD')) define('DB_PASSWORD', 'fallback');
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: wordpress
-  namespace: wordpress
-  labels:
-    app: wordpress
-spec:
-  ports:
-    - port: 80
-  selector:
-    app: wordpress
-    tier: frontend
----
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: wordpress
-  namespace: wordpress
-  labels:
-    app: wordpress
-spec:
-  selector:
-    matchLabels:
-      app: wordpress
-      tier: frontend
-  template:
-    metadata:
-      labels:
-        app: wordpress
-        tier: frontend
-    spec:
-      serviceAccountName: wordpress-sa
-      containers:
-        # --- CONTAINER 1: THE WORDPRESS APPLICATION ---
-        - image: wordpress:latest
-          name: wordpress
-          env:
-            - name: WORDPRESS_DB_HOST
-              value: wordpress-mysql.wordpress.svc.cluster.local
-            - name: WORDPRESS_DB_NAME
-              value: wordpress
-          ports:
-            - containerPort: 80
-              name: wordpress
-          resources:
-            requests:
-              memory: "256Mi"
-              cpu: "100m"
-            limits:
-              memory: "512Mi"
-              cpu: "500m"
-          volumeMounts:
-            - name: config-template
-              mountPath: /var/www/html/wp-vault-config.php
-              subPath: wp-vault-config.php
-            - name: vault-secrets
-              mountPath: /vault/secrets
-          command: ["/bin/sh", "-c"]
-          args:
-            - |
-              # Block startup until the manual Vault sidecar creates the dynamic file
-              while [ ! -f /vault/secrets/db-creds ]; do sleep 1; done
-              docker-entrypoint.sh apache2-foreground &
-              while [ ! -f /var/www/html/wp-config.php ]; do sleep 1; done
-              if ! grep -q "wp-vault-config.php" /var/www/html/wp-config.php; then
-                sed -i "2i include('/var/www/html/wp-vault-config.php');" /var/www/html/wp-config.php
-                sed -i "/define( 'DB_USER'/d" /var/www/html/wp-config.php
-                sed -i "/define( 'DB_PASSWORD'/d" /var/www/html/wp-config.php
-              fi
-              wait
+Проверим состояние все подов и сервисов:
 
-        # --- CONTAINER 2: THE MANUAL VAULT AGENT SIDECAR ---
-        - image: hashicorp/vault:latest
-          name: vault-agent
-          volumeMounts:
-            - name: vault-secrets
-              mountPath: /vault/secrets
-            - name: agent-config
-              mountPath: /etc/vault
-            - name: k8s-sa-token
-              mountPath: /var/run/secrets/kubernetes.io/serviceaccount
-              readOnly: true  
-          command: ["vault", "agent", "-config=/etc/vault/vault-agent-config.hcl"]
-          resources:
-            limits:
-              memory: "128Mi"
-              cpu: "100m"
-
-      volumes:
-        - name: config-template
-          configMap:
-            name: wp-config-template
-        - name: vault-secrets
-          emptyDir: {}
-        - name: agent-config
-          configMap:
-            name: vault-agent-config
-        - name: k8s-sa-token
-          projected:
-            sources:
-              - serviceAccountToken:
-                  path: token
-                  expirationSeconds: 7200    
----
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: vault-agent-config
-  namespace: wordpress
-data:
-  vault-agent-config.hcl: |
-    exit_after_auth = false
-    pid_file = "/home/vault/pid"
-
-    auto_auth {
-      method "kubernetes" {
-        mount_path = "auth/kubernetes"
-        config = {
-          role = "wordpress-role"
-          token_path = "/var/run/secrets/kubernetes.io/serviceaccount/token"
-        }
-      }
-      sink "file" {
-        config = {
-          path = "/vault/secrets/token"
-        }
-      }
-    }
-
-    vault {
-      # Uses the cross-namespace endpoint pointing to your Vault cluster
-      address = "http://vault-internal.vault.svc.cluster.local:8200"
-    }
-
-    template {
-      destination = "/vault/secrets/db-creds"
-      contents = <<EOH
-      {{- with secret "database/creds/wordpress-role" -}}
-      DB_USER={{ .Data.username }}
-      DB_PASSWORD={{ .Data.password }}
-      EOH
-    }
+```bash
+deploy@lab12-kub-master-1:~/vault$ kubectl get pods -n wordpress -o wide
+NAME                               READY   STATUS    RESTARTS   AGE   IP             NODE                 NOMINATED NODE   READINESS GATES
+wordpress-7cfd7bb4dd-mr58k         1/1     Running   0          24h   10.244.3.154   lab12-kub-worker-1   <none>           <none>
+wordpress-mysql-8664668fc6-62slq   1/1     Running   0          24h   10.244.3.152   lab12-kub-worker-1   <none>           <none>
 ```
 
+```bash
+deploy@lab12-kub-master-1:~/vault$ kubectl get svc -n wordpress -o wide
+NAME              TYPE           CLUSTER-IP     EXTERNAL-IP      PORT(S)        AGE   SELECTOR
+wordpress         LoadBalancer   10.111.34.90   192.168.70.158   80:31824/TCP   24h   app=wordpress,tier=frontend
+wordpress-mysql   ClusterIP      None           <none>           3306/TCP       24h   app=wordpress,tier=mysql
+```
+
+И проверим, что WordPress доступен по доменному имени:
+
+![](/Lab13_HashicorpVault/pics/WordPress.jpg)
+
+Видим, что Wordpress успешно запустился. 
+
+**Выводы**:
+
+В данной работе была рассмотрена работа с HashiCorp Vault - инструментом для работы с секретами. Был развернут кластер Vault в Kubernetes. Далее развернут веб-сервис WordPress, где реализована динамическое изменение пароля в БД и доставка измененного пароля в контейнер WordPress.  
