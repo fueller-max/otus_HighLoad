@@ -54,3 +54,6 @@ vault.txt
 
 #Exclude vault.seals
 vault.seals
+
+#
+wordpress.deploy
