@@ -114,7 +114,7 @@ variable vm_configs{
         vm_id       =  166
         name        =  "lab12-kub-worker-1"
         clone       =  "Ubuntu2404-live-server"
-        memory      =  2048
+        memory      =  6000
         cores       =  2
         sockets     =  2
         vm_state    =  "running" 
@@ -130,7 +130,7 @@ variable vm_configs{
         vm_id       =  167
         name        =  "lab12-kub-worker-2"
         clone       =  "Ubuntu2404-live-server"
-        memory      =  2048
+        memory      =  6000
         cores       =  2
         sockets     =  2
         vm_state    =  "running" 
