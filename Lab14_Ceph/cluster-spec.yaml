@@ -1,0 +1,51 @@
+# 1. DEFINE THE STORAGE HOSTS
+service_type: host
+hostname: lab14-ceph-1
+addr: 192.168.70.91
+labels:
+  - mon
+  - mgr
+  - osd
+  - mds
+---
+service_type: host
+hostname: lab14-ceph-2
+addr: 192.168.70.92
+labels:
+  - mon
+  - mgr
+  - osd
+  - mds
+---
+service_type: host
+hostname: lab14-ceph-3
+addr: 192.168.70.93
+labels:
+  - mon
+  - osd
+  - mgr
+  - mds
+---
+# 2. HIGH AVAILABILITY CORE SERVICES PLACEMENT
+service_type: mon
+placement:
+  label: mon # Automatically spins up exactly 3 MONs across nodes with this label
+---
+service_type: mgr
+placement:
+  label: mgr # Automatically spins up 2 MGRs for active/passive HA
+---
+# 3. DECLARATIVE OSD MANAGEMENT (Auto-provisions your 3x10GB disks per node)
+service_type: osd
+service_id: lab_osd_policy
+placement:
+  label: osd
+spec:
+  data_devices:
+    size: '9GB:11GB' # Dynamically targets any unused disk within this range (10GB)
+---
+# 4. CEPH FILESYSTEM METADATA DAEMONS (For your Cluster FS client)
+service_type: mds
+service_id: lab_fs
+placement:
+  label: mds # Highly Available active/passive metadata servers
